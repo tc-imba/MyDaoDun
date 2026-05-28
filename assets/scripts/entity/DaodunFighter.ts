@@ -43,9 +43,7 @@ export class DaodunFighter extends Component {
     update(dt: number) {
         if (this._attackTimer > 0) this._attackTimer -= dt;
 
-        const target = this._findNearestEnemyInRange();
-        if (target && this._attackTimer <= 0) {
-            target.takeDamage(this.damage);
+        if (this._attackTimer <= 0 && this._damageAllEnemiesInRange()) {
             this._attackTimer = this.attackInterval;
             this._fightHoldTimer = this.fightHoldDuration;
         }
@@ -58,24 +56,22 @@ export class DaodunFighter extends Component {
         }
     }
 
-    private _findNearestEnemyInRange(): Enemy | null {
-        if (Enemy.all.size === 0) return null;
+    private _damageAllEnemiesInRange(): boolean {
+        if (Enemy.all.size === 0) return false;
         this.node.getWorldPosition(this._myPos);
         const r2 = this.attackRange * this.attackRange;
-        let best: Enemy | null = null;
-        let bestD2 = r2;
+        let hitAny = false;
         for (const e of Enemy.all) {
             if (!e.node || !e.node.isValid) continue;
             e.node.getWorldPosition(this._otherPos);
             const dx = this._otherPos.x - this._myPos.x;
             const dy = this._otherPos.y - this._myPos.y;
-            const d2 = dx * dx + dy * dy;
-            if (d2 <= bestD2) {
-                bestD2 = d2;
-                best = e;
+            if (dx * dx + dy * dy <= r2) {
+                e.takeDamage(this.damage);
+                hitAny = true;
             }
         }
-        return best;
+        return hitAny;
     }
 
     private _tickFightAnim(dt: number) {
