@@ -1,4 +1,5 @@
 import { _decorator, Component, Vec2, EventTouch, input, Input } from 'cc';
+import { GameState, GAME_EVENT } from '../system/GameState';
 const { ccclass, property } = _decorator;
 
 @ccclass('VirtualJoystick')
@@ -20,6 +21,7 @@ export class VirtualJoystick extends Component {
         input.on(Input.EventType.TOUCH_MOVE, this.onTouchMove, this);
         input.on(Input.EventType.TOUCH_END, this.onTouchEnd, this);
         input.on(Input.EventType.TOUCH_CANCEL, this.onTouchEnd, this);
+        GameState.events.on(GAME_EVENT.RESET_INPUT, this._reset, this);
     }
 
     onDisable() {
@@ -27,9 +29,16 @@ export class VirtualJoystick extends Component {
         input.off(Input.EventType.TOUCH_MOVE, this.onTouchMove, this);
         input.off(Input.EventType.TOUCH_END, this.onTouchEnd, this);
         input.off(Input.EventType.TOUCH_CANCEL, this.onTouchEnd, this);
+        GameState.events.off(GAME_EVENT.RESET_INPUT, this._reset, this);
+    }
+
+    private _reset() {
+        this._touching = false;
+        this._dir.set(0, 0);
     }
 
     onTouchStart(event: EventTouch) {
+        if (GameState.skillPickerOpen) return;
         if (this._touching) return;
         const p = event.getUILocation();
         this._startX = p.x;
@@ -39,6 +48,7 @@ export class VirtualJoystick extends Component {
     }
 
     onTouchMove(event: EventTouch) {
+        if (GameState.skillPickerOpen) return;
         if (!this._touching) return;
         const p = event.getUILocation();
         const dx = p.x - this._startX;

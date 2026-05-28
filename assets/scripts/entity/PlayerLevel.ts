@@ -1,6 +1,7 @@
 import { _decorator, Component, Label } from 'cc';
 import { Enemy } from './Enemy';
 import { ExpBar } from '../system/ExpBar';
+import { SkillPicker } from '../system/SkillPicker';
 const { ccclass, property } = _decorator;
 
 @ccclass('PlayerLevel')
@@ -26,6 +27,9 @@ export class PlayerLevel extends Component {
     @property({ type: Label })
     expLabel: Label | null = null;
 
+    @property({ type: SkillPicker })
+    skillPicker: SkillPicker | null = null;
+
     get expToNext(): number {
         return Math.max(1, Math.floor(this.baseExpToLevel * Math.pow(this.expGrowthFactor, this.level - 1)));
     }
@@ -42,11 +46,16 @@ export class PlayerLevel extends Component {
     gainExp(amount: number) {
         if (amount <= 0) return;
         this.exp += amount;
+        let leveledUp = false;
         while (this.exp >= this.expToNext) {
             this.exp -= this.expToNext;
             this.level++;
+            leveledUp = true;
         }
         this._refreshUI();
+        if (leveledUp && this.skillPicker) {
+            this.skillPicker.show();
+        }
     }
 
     private _refreshUI() {
