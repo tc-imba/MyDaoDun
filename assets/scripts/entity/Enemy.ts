@@ -11,6 +11,7 @@ export class Enemy extends Component {
 
     static readonly all: Set<Enemy> = new Set();
     static onKilled: ((exp: number, enemy: Enemy) => void) | null = null;
+    static onPlayerHit: ((damage: number, enemy: Enemy) => void) | null = null;
 
     onEnable() {
         Enemy.all.add(this);

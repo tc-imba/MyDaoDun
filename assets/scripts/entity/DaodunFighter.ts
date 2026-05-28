@@ -41,17 +41,13 @@ export class DaodunFighter extends Component {
     }
 
     update(dt: number) {
-        const target = this._findNearestEnemyInRange();
+        if (this._attackTimer > 0) this._attackTimer -= dt;
 
-        if (target) {
-            this._attackTimer -= dt;
-            if (this._attackTimer <= 0) {
-                target.takeDamage(this.damage);
-                this._attackTimer = this.attackInterval;
-                this._fightHoldTimer = this.fightHoldDuration;
-            }
-        } else {
-            this._attackTimer = 0;
+        const target = this._findNearestEnemyInRange();
+        if (target && this._attackTimer <= 0) {
+            target.takeDamage(this.damage);
+            this._attackTimer = this.attackInterval;
+            this._fightHoldTimer = this.fightHoldDuration;
         }
 
         if (this._fightHoldTimer > 0) {
