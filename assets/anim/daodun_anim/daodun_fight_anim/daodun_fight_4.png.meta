@@ -2,7 +2,7 @@
   "ver": "1.0.27",
   "importer": "image",
   "imported": true,
-  "uuid": "f79b6570-11c4-46c3-b319-828d5182285d",
+  "uuid": "83a0783d-00bf-40c8-a6b8-55a0c2e0b1fa",
   "files": [
     ".json",
     ".png"
@@ -10,14 +10,14 @@
   "subMetas": {
     "6c48a": {
       "importer": "texture",
-      "uuid": "f79b6570-11c4-46c3-b319-828d5182285d@6c48a",
-      "displayName": "daodun_fight_2",
+      "uuid": "83a0783d-00bf-40c8-a6b8-55a0c2e0b1fa@6c48a",
+      "displayName": "daodun_fight_4",
       "id": "6c48a",
       "name": "texture",
       "userData": {
         "wrapModeS": "clamp-to-edge",
         "wrapModeT": "clamp-to-edge",
-        "imageUuidOrDatabaseUri": "f79b6570-11c4-46c3-b319-828d5182285d",
+        "imageUuidOrDatabaseUri": "83a0783d-00bf-40c8-a6b8-55a0c2e0b1fa",
         "isUuid": true,
         "visible": false,
         "minfilter": "linear",
@@ -34,8 +34,8 @@
     },
     "f9941": {
       "importer": "sprite-frame",
-      "uuid": "f79b6570-11c4-46c3-b319-828d5182285d@f9941",
-      "displayName": "daodun_fight_2",
+      "uuid": "83a0783d-00bf-40c8-a6b8-55a0c2e0b1fa@f9941",
+      "displayName": "daodun_fight_4",
       "id": "f9941",
       "name": "spriteFrame",
       "userData": {
@@ -113,7 +113,7 @@
           ]
         },
         "isUuid": true,
-        "imageUuidOrDatabaseUri": "f79b6570-11c4-46c3-b319-828d5182285d@6c48a",
+        "imageUuidOrDatabaseUri": "83a0783d-00bf-40c8-a6b8-55a0c2e0b1fa@6c48a",
         "atlasUuid": "",
         "trimType": "none"
       },
@@ -129,6 +129,6 @@
     "type": "sprite-frame",
     "fixAlphaTransparencyArtifacts": false,
     "hasAlpha": true,
-    "redirect": "f79b6570-11c4-46c3-b319-828d5182285d@6c48a"
+    "redirect": "83a0783d-00bf-40c8-a6b8-55a0c2e0b1fa@6c48a"
   }
 }
