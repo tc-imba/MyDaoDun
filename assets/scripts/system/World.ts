@@ -1,13 +1,10 @@
-import { _decorator, Component, Graphics, Color, Node, Vec3, view } from 'cc';
+import { _decorator, Component, Graphics, Color, view } from 'cc';
 const { ccclass, property } = _decorator;
 
 @ccclass('World')
 export class World extends Component {
     @property
     gridSize: number = 100;
-
-    @property({ type: Node, tooltip: 'Camera the grid follows.' })
-    camera: Node | null = null;
 
     @property
     minorColor: Color = new Color(70, 70, 70, 255);
@@ -17,19 +14,16 @@ export class World extends Component {
 
     private _graphics: Graphics | null = null;
     private _lastKey: string = '';
-    private _camPos: Vec3 = new Vec3();
 
     onLoad() {
         this._graphics = this.getComponent(Graphics);
     }
 
     update() {
-        if (!this._graphics || !this.camera) return;
+        if (!this._graphics) return;
 
-        this.camera.getWorldPosition(this._camPos);
-        const camX = this._camPos.x;
-        const camY = this._camPos.y;
-
+        const camX = -this.node.position.x;
+        const camY = -this.node.position.y;
         const vs = view.getVisibleSize();
         const halfW = vs.width * 0.5 + this.gridSize;
         const halfH = vs.height * 0.5 + this.gridSize;
