@@ -24,7 +24,8 @@ export class BreathingIdle extends Component {
 
     onDisable() {
         this.unschedule(this._tick);
-        this.node.setScale(this._baseScale);
+        const s = this.node.scale;
+        this.node.setScale(s.x, this._baseScale.y, s.z);
     }
 
     private _tick = () => {
@@ -33,14 +34,8 @@ export class BreathingIdle extends Component {
     };
 
     private _applyFrame() {
-        if (this._short) {
-            this.node.setScale(
-                this._baseScale.x,
-                this._baseScale.y * this.shortScaleY,
-                this._baseScale.z,
-            );
-        } else {
-            this.node.setScale(this._baseScale);
-        }
+        const s = this.node.scale;
+        const y = this._short ? this._baseScale.y * this.shortScaleY : this._baseScale.y;
+        this.node.setScale(s.x, y, s.z);
     }
 }

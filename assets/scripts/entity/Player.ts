@@ -60,6 +60,12 @@ export class Player extends Component {
         if (len === 0) return;
         if (len > 1) { dx /= len; dy /= len; }
 
+        if (dx !== 0) {
+            const s = this.node.scale;
+            const want = dx > 0 ? -Math.abs(s.x) : Math.abs(s.x);
+            if (s.x !== want) this.node.setScale(want, s.y, s.z);
+        }
+
         const target = this.world ?? this.node;
         const sign = this.world ? -1 : 1;
         target.getPosition(this._tmpPos);
