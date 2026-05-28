@@ -17,6 +17,9 @@ export class PlayerHp extends Component {
     @property({ type: Node, tooltip: 'Node shown when the player dies (e.g. "You are dead" overlay). Activated on death.' })
     deathOverlay: Node | null = null;
 
+    @property({ tooltip: 'Seconds the death overlay stays before HP refills and existing enemies are cleared.' })
+    respawnDelay: number = 2.0;
+
     private _currentHp: number = 0;
     private _dead: boolean = false;
 
@@ -49,5 +52,17 @@ export class PlayerHp extends Component {
     private _die() {
         this._dead = true;
         if (this.deathOverlay) this.deathOverlay.active = true;
+        this.scheduleOnce(this._respawn, this.respawnDelay);
     }
+
+    private _respawn = () => {
+        const enemies = Array.from(Enemy.all);
+        for (const e of enemies) {
+            if (e.node && e.node.isValid) e.node.destroy();
+        }
+        this._currentHp = this.maxHp;
+        this._dead = false;
+        if (this.deathOverlay) this.deathOverlay.active = false;
+        this._refreshUI();
+    };
 }
