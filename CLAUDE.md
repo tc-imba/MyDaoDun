@@ -43,3 +43,23 @@ npm run build --prefix extensions/cocos-mcp-server
 ```
 
 The submodule's `dist/` is checked in upstream, so a rebuild will show as locally-modified content inside the submodule — that's expected and should not be committed to this repo.
+
+## Commit messages
+
+Follow [Conventional Commits](https://www.conventionalcommits.org/): `<type>(<scope>): <subject>`.
+
+- **type**: `feat` | `fix` | `docs` | `style` | `refactor` | `perf` | `test` | `chore` | `build` | `ci`.
+- **scope** (optional but encouraged): the area touched. Common scopes in this repo: `player`, `world`, `scene`, `input`, `mcp`, `skill`, `claude`.
+- **subject**: imperative, lower-case, no trailing period, under ~70 chars.
+
+Examples:
+
+```
+feat(player): add WASD/arrow keyboard control
+fix(player): repair BreathingIdle reference after scene churn
+refactor(world): host player under Map node with camera follow
+chore(mcp): configure project endpoint and autostart
+docs: document Cocos MCP server setup
+```
+
+Use the body (separated by a blank line) for the **why** when it isn't obvious from the diff.
