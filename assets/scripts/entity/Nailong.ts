@@ -26,6 +26,11 @@ export class Nailong extends Enemy {
         const dy = this._tgtWorld.y - this._myWorld.y;
         const dist = Math.hypot(dx, dy);
         if (dist < 0.5) return;
+
+        const s = this.node.scale;
+        const wantX = dx > 0 ? -Math.abs(s.x) : Math.abs(s.x);
+        if (s.x !== wantX) this.node.setScale(wantX, s.y, s.z);
+
         const step = Math.min(this.speed * dt, dist);
         this.node.getPosition(this._local);
         this._local.x += (dx / dist) * step;
