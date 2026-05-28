@@ -1,0 +1,30 @@
+import { _decorator, Component } from 'cc';
+const { ccclass, property } = _decorator;
+
+@ccclass('Enemy')
+export class Enemy extends Component {
+    @property
+    life: number = 1;
+
+    static readonly all: Set<Enemy> = new Set();
+
+    onEnable() {
+        Enemy.all.add(this);
+    }
+
+    onDisable() {
+        Enemy.all.delete(this);
+    }
+
+    takeDamage(amount: number) {
+        if (this.life <= 0) return;
+        this.life -= amount;
+        if (this.life <= 0) {
+            this.die();
+        }
+    }
+
+    protected die() {
+        this.node.destroy();
+    }
+}

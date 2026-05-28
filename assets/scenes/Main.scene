@@ -52,7 +52,7 @@
     },
     "autoReleaseAssets": false,
     "_globals": {
-      "__id__": 19
+      "__id__": 21
     },
     "_id": "7c25b5a9-259b-4709-9de6-51392d1a526d"
   },
@@ -78,16 +78,19 @@
     "_active": true,
     "_components": [
       {
-        "__id__": 16
-      },
-      {
         "__id__": 17
       },
       {
         "__id__": 18
       },
       {
+        "__id__": 19
+      },
+      {
         "__id__": 10
+      },
+      {
+        "__id__": 20
       }
     ],
     "_prefab": null,
@@ -258,6 +261,9 @@
       },
       {
         "__id__": 15
+      },
+      {
+        "__id__": 16
       }
     ],
     "_prefab": null,
@@ -538,6 +544,34 @@
     "_id": "a55d10jJjBEva2MO8VfIs9R"
   },
   {
+    "__type__": "826c5109y5OI7ACchXlIg+g",
+    "_name": "",
+    "_objFlags": 0,
+    "__editorExtras__": {},
+    "node": {
+      "__id__": 6
+    },
+    "_enabled": true,
+    "__prefab": null,
+    "idleFrame": {
+      "__uuid__": "77f97084-4f59-48b9-8bda-5690b1550217@f9941",
+      "__expectedType__": "cc.SpriteFrame"
+    },
+    "fightFrame1": {
+      "__uuid__": "0a6b3f23-6e6f-4fed-88c5-72a60012c0be@f9941",
+      "__expectedType__": "cc.SpriteFrame"
+    },
+    "fightFrame2": {
+      "__uuid__": "18189c0e-9568-4161-b9e7-ead609a31121@f9941",
+      "__expectedType__": "cc.SpriteFrame"
+    },
+    "attackRange": 200,
+    "attackInterval": 0.4,
+    "fightFps": 6,
+    "damage": 1,
+    "_id": "83nGbbElFLz6dBgFXx2fc7"
+  },
+  {
     "__type__": "cc.UITransform",
     "_name": "",
     "_objFlags": 0,
@@ -606,30 +640,56 @@
     "_id": "f2N3YErf1C4KGyTgPfc12u"
   },
   {
+    "__type__": "0a016zLvvdFmY1hxKumh+zT",
+    "_name": "",
+    "_objFlags": 0,
+    "__editorExtras__": {},
+    "node": {
+      "__id__": 2
+    },
+    "_enabled": true,
+    "__prefab": null,
+    "nailongFrame": {
+      "__uuid__": "4ed4c974-723c-477a-b01e-7664c558dd1a@f9941",
+      "__expectedType__": "cc.SpriteFrame"
+    },
+    "worldNode": {
+      "__id__": 11
+    },
+    "target": {
+      "__id__": 6
+    },
+    "spawnsPerSecond": 2,
+    "enemyWidth": 50,
+    "enemyHeight": 90,
+    "spawnMargin": 80,
+    "_id": "3awOLBm69DIYO4ScRsHLkm"
+  },
+  {
     "__type__": "cc.SceneGlobals",
     "ambient": {
-      "__id__": 20
-    },
-    "shadows": {
-      "__id__": 21
-    },
-    "_skybox": {
       "__id__": 22
     },
-    "fog": {
+    "shadows": {
       "__id__": 23
     },
-    "octree": {
+    "_skybox": {
       "__id__": 24
     },
-    "skin": {
+    "fog": {
       "__id__": 25
     },
-    "lightProbeInfo": {
+    "octree": {
       "__id__": 26
     },
-    "postSettings": {
+    "skin": {
       "__id__": 27
+    },
+    "lightProbeInfo": {
+      "__id__": 28
+    },
+    "postSettings": {
+      "__id__": 29
     },
     "bakedWithStationaryMainLight": false,
     "bakedWithHighpLightmap": false
