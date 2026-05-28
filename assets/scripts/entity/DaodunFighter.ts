@@ -25,10 +25,14 @@ export class DaodunFighter extends Component {
     @property
     damage: number = 1;
 
+    @property({ tooltip: 'How long the fight animation stays visible after each hit (seconds).' })
+    fightHoldDuration: number = 0.4;
+
     private _sprite: Sprite | null = null;
     private _attackTimer: number = 0;
     private _fightTimer: number = 0;
     private _fightFrame: 0 | 1 = 0;
+    private _fightHoldTimer: number = 0;
     private _myPos: Vec3 = new Vec3();
     private _otherPos: Vec3 = new Vec3();
 
@@ -44,10 +48,16 @@ export class DaodunFighter extends Component {
             if (this._attackTimer <= 0) {
                 target.takeDamage(this.damage);
                 this._attackTimer = this.attackInterval;
+                this._fightHoldTimer = this.fightHoldDuration;
             }
-            this._tickFightAnim(dt);
         } else {
             this._attackTimer = 0;
+        }
+
+        if (this._fightHoldTimer > 0) {
+            this._fightHoldTimer -= dt;
+            this._tickFightAnim(dt);
+        } else {
             this._showIdle();
         }
     }
