@@ -22,3 +22,8 @@ node_modules/
 # WebStorm
 #//////////////////////////
 .idea/
+
+#//////////////////////////
+# Cocos MCP Server (per-user generated config)
+#//////////////////////////
+settings/tool-manager.json
