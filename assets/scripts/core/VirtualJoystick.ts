@@ -1,64 +1,61 @@
-import { _decorator, Component, Node, Vec2, Vec3, UITransform, EventTouch } from 'cc';
+import { _decorator, Component, Vec2, EventTouch, input, Input } from 'cc';
 const { ccclass, property } = _decorator;
 
 @ccclass('VirtualJoystick')
 export class VirtualJoystick extends Component {
-    @property(Node)
-    thumb: Node | null = null;
-
     @property
-    radius: number = 80;
+    radius: number = 100;
 
     private _dir: Vec2 = new Vec2(0, 0);
     private _touching: boolean = false;
-    private _tmp: Vec3 = new Vec3();
+    private _startX: number = 0;
+    private _startY: number = 0;
 
     get direction(): Vec2 {
         return this._dir;
     }
 
-    onLoad() {
-        this.node.on(Node.EventType.TOUCH_START, this.onTouchStart, this);
-        this.node.on(Node.EventType.TOUCH_MOVE, this.onTouchMove, this);
-        this.node.on(Node.EventType.TOUCH_END, this.onTouchEnd, this);
-        this.node.on(Node.EventType.TOUCH_CANCEL, this.onTouchEnd, this);
+    onEnable() {
+        input.on(Input.EventType.TOUCH_START, this.onTouchStart, this);
+        input.on(Input.EventType.TOUCH_MOVE, this.onTouchMove, this);
+        input.on(Input.EventType.TOUCH_END, this.onTouchEnd, this);
+        input.on(Input.EventType.TOUCH_CANCEL, this.onTouchEnd, this);
     }
 
-    private updateFromTouch(event: EventTouch) {
-        const ui = this.node.getComponent(UITransform);
-        if (!ui) return;
-        const ui_pt = event.getUILocation();
-        this._tmp.set(ui_pt.x, ui_pt.y, 0);
-        const local = ui.convertToNodeSpaceAR(this._tmp);
-        const dx = local.x;
-        const dy = local.y;
-        const len = Math.hypot(dx, dy);
-        const clamped = Math.min(len, this.radius);
-        let nx = 0, ny = 0;
-        if (len > 0) {
-            nx = dx / len;
-            ny = dy / len;
-        }
-        if (this.thumb) {
-            this.thumb.setPosition(nx * clamped, ny * clamped, 0);
-        }
-        const mag = clamped / this.radius;
-        this._dir.set(nx * mag, ny * mag);
+    onDisable() {
+        input.off(Input.EventType.TOUCH_START, this.onTouchStart, this);
+        input.off(Input.EventType.TOUCH_MOVE, this.onTouchMove, this);
+        input.off(Input.EventType.TOUCH_END, this.onTouchEnd, this);
+        input.off(Input.EventType.TOUCH_CANCEL, this.onTouchEnd, this);
     }
 
     onTouchStart(event: EventTouch) {
+        if (this._touching) return;
+        const p = event.getUILocation();
+        this._startX = p.x;
+        this._startY = p.y;
         this._touching = true;
-        this.updateFromTouch(event);
+        this._dir.set(0, 0);
     }
 
     onTouchMove(event: EventTouch) {
         if (!this._touching) return;
-        this.updateFromTouch(event);
+        const p = event.getUILocation();
+        const dx = p.x - this._startX;
+        const dy = p.y - this._startY;
+        const len = Math.hypot(dx, dy);
+        if (len === 0) {
+            this._dir.set(0, 0);
+            return;
+        }
+        const clamped = Math.min(len, this.radius);
+        const mag = clamped / this.radius;
+        this._dir.set((dx / len) * mag, (dy / len) * mag);
     }
 
     onTouchEnd(_event: EventTouch) {
+        if (!this._touching) return;
         this._touching = false;
         this._dir.set(0, 0);
-        if (this.thumb) this.thumb.setPosition(0, 0, 0);
     }
 }
