@@ -1,4 +1,4 @@
-import { _decorator, Component, Vec3, input, Input, EventKeyboard, KeyCode } from 'cc';
+import { _decorator, Component, Node, Vec3, input, Input, EventKeyboard, KeyCode } from 'cc';
 import { VirtualJoystick } from '../core/VirtualJoystick';
 const { ccclass, property } = _decorator;
 
@@ -6,6 +6,9 @@ const { ccclass, property } = _decorator;
 export class Player extends Component {
     @property({ type: VirtualJoystick })
     joystick: VirtualJoystick | null = null;
+
+    @property(Node)
+    world: Node | null = null;
 
     @property
     speed: number = 300;
@@ -57,9 +60,11 @@ export class Player extends Component {
         if (len === 0) return;
         if (len > 1) { dx /= len; dy /= len; }
 
-        this.node.getPosition(this._tmpPos);
-        this._tmpPos.x += dx * this.speed * dt;
-        this._tmpPos.y += dy * this.speed * dt;
-        this.node.setPosition(this._tmpPos);
+        const target = this.world ?? this.node;
+        const sign = this.world ? -1 : 1;
+        target.getPosition(this._tmpPos);
+        this._tmpPos.x += sign * dx * this.speed * dt;
+        this._tmpPos.y += sign * dy * this.speed * dt;
+        target.setPosition(this._tmpPos);
     }
 }
