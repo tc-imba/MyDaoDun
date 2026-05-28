@@ -6,7 +6,11 @@ export class Enemy extends Component {
     @property
     life: number = 1;
 
+    @property
+    expValue: number = 1;
+
     static readonly all: Set<Enemy> = new Set();
+    static onKilled: ((exp: number, enemy: Enemy) => void) | null = null;
 
     onEnable() {
         Enemy.all.add(this);
@@ -25,6 +29,7 @@ export class Enemy extends Component {
     }
 
     protected die() {
+        Enemy.onKilled?.(this.expValue, this);
         this.node.destroy();
     }
 }
