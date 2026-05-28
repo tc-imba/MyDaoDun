@@ -1,11 +1,11 @@
-import { _decorator, Component, Node, Sprite, SpriteFrame, UITransform, Size, view, Vec3 } from 'cc';
+import { _decorator, Component, Node, Prefab, instantiate, view, Vec3 } from 'cc';
 import { Nailong } from '../entity/Nailong';
 const { ccclass, property } = _decorator;
 
 @ccclass('EnemySpawner')
 export class EnemySpawner extends Component {
-    @property(SpriteFrame)
-    nailongFrame: SpriteFrame | null = null;
+    @property(Prefab)
+    nailongPrefab: Prefab | null = null;
 
     @property({ type: Node, tooltip: 'The World node enemies are parented to (scrolls with the grid).' })
     worldNode: Node | null = null;
@@ -15,12 +15,6 @@ export class EnemySpawner extends Component {
 
     @property
     spawnsPerSecond: number = 2;
-
-    @property
-    enemyWidth: number = 50;
-
-    @property
-    enemyHeight: number = 90;
 
     @property
     spawnMargin: number = 80;
@@ -36,7 +30,7 @@ export class EnemySpawner extends Component {
     }
 
     private spawnOne = () => {
-        if (!this.nailongFrame || !this.worldNode || !this.target) return;
+        if (!this.nailongPrefab || !this.worldNode || !this.target) return;
 
         this.target.getWorldPosition(this._tgt);
         const vs = view.getVisibleSize();
@@ -52,15 +46,9 @@ export class EnemySpawner extends Component {
             case 3: wy += halfH + this.spawnMargin; wx += (Math.random() * 2 - 1) * halfW; break;
         }
 
-        const node = new Node('Nailong');
-        const ui = node.addComponent(UITransform);
-        ui.setContentSize(new Size(this.enemyWidth, this.enemyHeight));
-        ui.setAnchorPoint(0.5, 0);
-        const sprite = node.addComponent(Sprite);
-        sprite.spriteFrame = this.nailongFrame;
-        sprite.sizeMode = Sprite.SizeMode.CUSTOM;
-        const nailong = node.addComponent(Nailong);
-        nailong.target = this.target;
+        const node = instantiate(this.nailongPrefab);
+        const nailong = node.getComponent(Nailong);
+        if (nailong) nailong.target = this.target;
 
         this.worldNode.addChild(node);
         node.setWorldPosition(wx, wy, 0);

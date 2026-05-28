@@ -44,6 +44,17 @@ npm run build --prefix extensions/cocos-mcp-server
 
 The submodule's `dist/` is checked in upstream, so a rebuild will show as locally-modified content inside the submodule — that's expected and should not be committed to this repo.
 
+## Cocos MCP server limitations
+
+Known broken tools — do not use, fall back to the editor GUI:
+
+- **`prefab_create_prefab`** writes prefab JSON that references scripts by class name (`"__type__": "Nailong"`) instead of the script's cid (`"__type__": "dd7b6BPMY1NWovqg2zjPOvf"`). It also fails to capture the source node's customized property values (UITransform contentSize, Sprite spriteFrame, sizeMode, etc.) — the generated file ends up as a default-valued stub. The editor's importer flags such files as `invalid: true` and runtime deserialization errors with "Missing class". **Workaround**: build the node in the scene via MCP, then drag it from the Hierarchy into `assets/prefabs/` in the editor's Asset panel — Cocos generates a correct prefab.
+
+Known quirks of working tools:
+
+- **`component_set_component_property` rejects exact zero** for some Vec2 fields (e.g. `cc.UITransform.anchorPoint.y = 0`) and silently keeps the prior value with `changeVerified: false`. Pass `0.0001` instead; it's identical for rendering.
+- **`component_attach_script` reports `Script 'X' was not found on node after addition`** even though the component IS attached (the script appears in the components list under its cid like `dd7b6BPMY1NWovqg2zjPOvf`). The "error" is just a verification mismatch — proceed by setting properties via the cid.
+
 ## Commit messages
 
 Follow [Conventional Commits](https://www.conventionalcommits.org/): `<type>(<scope>): <subject>`.
