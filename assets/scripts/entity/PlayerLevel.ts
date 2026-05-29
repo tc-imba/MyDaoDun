@@ -1,4 +1,4 @@
-import { _decorator, Component, Label } from 'cc';
+import { _decorator, Component, Label, AudioClip, AudioSource } from 'cc';
 import { Enemy } from './Enemy';
 import { DaodunFighter } from './DaodunFighter';
 import { ExpBar } from '../system/ExpBar';
@@ -32,6 +32,15 @@ export class PlayerLevel extends Component {
     @property({ type: SkillPicker })
     skillPicker: SkillPicker | null = null;
 
+    @property({ type: AudioSource, tooltip: 'AudioSource used to play level-up SFX. Falls back to Player\'s own AudioSource if unset.' })
+    audioSource: AudioSource | null = null;
+
+    @property({ type: AudioClip, tooltip: 'Clip played on level-up.' })
+    levelUpClip: AudioClip | null = null;
+
+    @property({ range: [0, 1, 0.01], slide: true })
+    levelUpVolume: number = 1.0;
+
     get expToNext(): number {
         return Math.max(1, Math.floor(this.baseExpToLevel * Math.pow(this.expGrowthFactor, this.level - 1)));
     }
@@ -40,6 +49,7 @@ export class PlayerLevel extends Component {
         Enemy.onKilled = (exp) => this.gainExp(exp);
         const fighter = this.node.getComponent(DaodunFighter);
         if (fighter) getSkillTree().bindFighter(fighter);
+        if (!this.audioSource) this.audioSource = this.getComponent(AudioSource);
         this._refreshUI();
     }
 
@@ -57,8 +67,15 @@ export class PlayerLevel extends Component {
             leveledUp = true;
         }
         this._refreshUI();
-        if (leveledUp && this.skillPicker) {
-            this.skillPicker.show();
+        if (leveledUp) {
+            this._playLevelUpSfx();
+            if (this.skillPicker) this.skillPicker.show();
+        }
+    }
+
+    private _playLevelUpSfx() {
+        if (this.audioSource && this.levelUpClip) {
+            this.audioSource.playOneShot(this.levelUpClip, this.levelUpVolume);
         }
     }
 
