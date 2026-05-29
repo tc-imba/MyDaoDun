@@ -1,6 +1,7 @@
 import { _decorator, Animation, Component, Sprite, SpriteFrame, Vec3 } from 'cc';
 import { Enemy } from './Enemy';
 import { Player } from './Player';
+import { SwooshFX } from './SwooshFX';
 const { ccclass, property } = _decorator;
 
 @ccclass('DaodunFighter')
@@ -26,6 +27,9 @@ export class DaodunFighter extends Component {
     @property({ tooltip: 'Optional clip name to play on hit. Leave empty to use cc.Animation defaultClip.' })
     fightClipName: string = '';
 
+    @property({ type: SwooshFX, tooltip: 'Optional radial swoosh VFX child played on hit.' })
+    swooshFX: SwooshFX | null = null;
+
     private _sprite: Sprite | null = null;
     private _anim: Animation | null = null;
     private _player: Player | null = null;
@@ -47,6 +51,10 @@ export class DaodunFighter extends Component {
             this._attackTimer = this.attackInterval;
             this._fightHoldTimer = this.fightHoldDuration;
             this._playFightAnim();
+            if (this.swooshFX) {
+                const facingX = this.node.scale.x < 0 ? 1 : -1;
+                this.swooshFX.play(facingX);
+            }
         }
 
         if (this._fightHoldTimer > 0) {
