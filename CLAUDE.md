@@ -77,8 +77,8 @@ Use the body (separated by a blank line) for the **why** when it isn't obvious f
 
 ## Publish gate (HARD)
 
-Before any operation that publishes to a remote — **`git push`** (in any form, including `--force`, `--force-with-lease`, `-u`, branch-specific), **`gh pr create`**, **`gh pr merge`** — pause and require the user to type either **`submit`** or **`push`** (lower-case, on its own) to authorize. Anything else, including questions, "yes", "ok", "go ahead", or silence, holds the gate.
+Before any operation that publishes to a remote — **`git push`** (in any form, including `--force`, `--force-with-lease`, `-u`, branch-specific), **`gh pr create`**, **`gh pr merge`** — the user's message must contain the literal word **`push`** or **`submit`** (lower-case) as an explicit imperative. The word can appear on its own ("push", "submit") or inside a clearly intent-bearing instruction ("commit and push", "push these changes", "go ahead and submit"). Ambiguous approvals — "yes", "ok", "go ahead", "ship it", or silence — do **not** authorize; the literal word must be present.
 
-Show what's about to be published first (`git log`, `gh pr view`, etc.) so the user can verify, then state explicitly that you are waiting on `submit` or `push`. One authorization word authorizes one push or PR action — do not assume the next one is also approved.
+Show what's about to be published first (`git log`, `gh pr view`, etc.) so the user can verify, then state explicitly that you are waiting on `submit` or `push`. One authorization message authorizes one push or PR action — do not assume the next one is also approved.
 
 Applies to every push, every session, every commit set. This rule overrides any prior "go ahead and push" approval that referred to a different set of commits.
