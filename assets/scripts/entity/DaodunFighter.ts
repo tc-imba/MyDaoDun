@@ -52,8 +52,8 @@ export class DaodunFighter extends Component {
             this._fightHoldTimer = this.fightHoldDuration;
             this._playFightAnim();
             if (this.swooshFX) {
-                const facingX = this.node.scale.x < 0 ? 1 : -1;
-                this.swooshFX.play(facingX);
+                const facingAngle = this._player ? this._player.facingAngle : Math.PI;
+                this.swooshFX.play(facingAngle, this.attackRange, this.fanAngleDeg);
             }
         }
 
