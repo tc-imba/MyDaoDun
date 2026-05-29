@@ -44,6 +44,21 @@ npm run build --prefix extensions/cocos-mcp-server
 
 The submodule's `dist/` is checked in upstream, so a rebuild will show as locally-modified content inside the submodule — that's expected and should not be committed to this repo.
 
+## Scene-vs-disk desync (HARD rule)
+
+The Cocos editor reads `Main.scene` into memory on open and **never re-syncs from disk after that**. If you `git pull` (or `git checkout`, `git reset`, `git rebase`) while the scene is open, the editor still holds the *old* version. The next save overwrites whatever the pull brought in — silently wiping any subtree another developer (or Claude via MCP) added.
+
+We've lost `SkillPicker`, `AttackRange`, and other nodes to this multiple times.
+
+**Before doing anything in the editor after pulling/checking-out/rebasing:**
+
+1. Close the `Main.scene` tab (right-click → Close, or Ctrl+W).
+2. Open it again by double-clicking `assets/scenes/Main.scene` in the Asset panel.
+
+Only then is the editor's view in sync with disk. Do not click Save until you've reloaded. The same applies after Claude makes scene changes via MCP — close + reopen before you edit further.
+
+Structural mitigation: anything that doesn't need to live in `Main.scene` directly (modals, HUD overlays, debug overlays) should live as a **prefab** under `assets/prefabs/` and be instantiated in the scene as a prefab reference. That way a teammate editing Player can't accidentally overwrite an unrelated UI subtree — only the prefab asset itself is shared, and prefab files conflict less catastrophically.
+
 ## Cocos MCP server limitations
 
 Known broken tools — do not use, fall back to the editor GUI:
