@@ -1,6 +1,7 @@
 import { _decorator, Component, Label, AudioClip, AudioSource } from 'cc';
 import { Enemy } from './Enemy';
 import { DaodunFighter } from './DaodunFighter';
+import { PierreCashonFighter } from './PierreCashonFighter';
 import { ExpBar } from '../system/ExpBar';
 import { SkillPicker } from '../system/SkillPicker';
 import { getSkillTree } from '../skills/SkillTree';
@@ -47,8 +48,11 @@ export class PlayerLevel extends Component {
 
     onEnable() {
         Enemy.onKilled = (exp) => this.gainExp(exp);
+        const tree = getSkillTree();
         const fighter = this.node.getComponent(DaodunFighter);
-        if (fighter) getSkillTree().bindFighter(fighter);
+        if (fighter) tree.bindFighter(fighter);
+        const pierre = this.node.getComponent(PierreCashonFighter);
+        if (pierre) tree.bindPierre(pierre);
         if (!this.audioSource) this.audioSource = this.getComponent(AudioSource);
         this._refreshUI();
     }
