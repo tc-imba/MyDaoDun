@@ -1,5 +1,6 @@
 import { _decorator, Animation, Component, Sprite, SpriteFrame, Vec3 } from 'cc';
 import { Enemy } from './Enemy';
+import { Player } from './Player';
 const { ccclass, property } = _decorator;
 
 @ccclass('DaodunFighter')
@@ -27,6 +28,7 @@ export class DaodunFighter extends Component {
 
     private _sprite: Sprite | null = null;
     private _anim: Animation | null = null;
+    private _player: Player | null = null;
     private _attackTimer: number = 0;
     private _fightHoldTimer: number = 0;
     private _myPos: Vec3 = new Vec3();
@@ -35,6 +37,7 @@ export class DaodunFighter extends Component {
     onLoad() {
         this._sprite = this.getComponent(Sprite);
         this._anim = this.getComponent(Animation);
+        this._player = this.getComponent(Player);
     }
 
     update(dt: number) {
@@ -73,8 +76,10 @@ export class DaodunFighter extends Component {
         if (Enemy.all.size === 0) return false;
         this.node.getWorldPosition(this._myPos);
         const r2 = this.attackRange * this.attackRange;
-        // Facing: scale.x < 0 means flipped → facing right (+1); otherwise facing left (-1).
-        const facingX = this.node.scale.x < 0 ? 1 : -1;
+        // Facing vector: unit (cos, sin) of Player.facingAngle (radians).
+        const facingAngle = this._player ? this._player.facingAngle : Math.PI;
+        const fx = Math.cos(facingAngle);
+        const fy = Math.sin(facingAngle);
         const cosHalfFan = Math.cos((this.fanAngleDeg * Math.PI) / 360);
         let hitAny = false;
         for (const e of Enemy.all) {
@@ -89,7 +94,8 @@ export class DaodunFighter extends Component {
                 hitAny = true;
                 continue;
             }
-            const dot = (facingX * dx) / Math.sqrt(d2);
+            const dist = Math.sqrt(d2);
+            const dot = (fx * dx + fy * dy) / dist;
             if (dot >= cosHalfFan) {
                 e.takeDamage(this.damage);
                 hitAny = true;

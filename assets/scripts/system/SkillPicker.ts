@@ -1,6 +1,7 @@
 import { _decorator, Component, Node, EventTouch, director } from 'cc';
 import { SkillCard } from './SkillCard';
 import { GameState, GAME_EVENT } from './GameState';
+import { getSkillTree, SkillNode } from '../skills/SkillTree';
 const { ccclass, property } = _decorator;
 
 @ccclass('SkillPicker')
@@ -19,6 +20,7 @@ export class SkillPicker extends Component {
 
     private _selectedIndex: number = -1;
     private _cards: Node[] = [];
+    private _picked: (SkillNode | null)[] = [];
 
     onLoad() {
         this.node.active = false;
@@ -37,6 +39,22 @@ export class SkillPicker extends Component {
 
     show() {
         this._selectedIndex = -1;
+        const tree = getSkillTree();
+        const picks = tree.pickRandom(this._cards.length);
+        this._picked = [];
+        for (let i = 0; i < this._cards.length; i++) {
+            const sc = this._cards[i].getComponent(SkillCard);
+            if (!sc) { this._picked.push(null); continue; }
+            const skill = picks[i] ?? null;
+            this._picked.push(skill);
+            if (skill) {
+                sc.bind(skill);
+                this._cards[i].active = true;
+            } else {
+                sc.clearBinding();
+                this._cards[i].active = false;
+            }
+        }
         this.node.active = true;
         GameState.skillPickerOpen = true;
         GameState.events.emit(GAME_EVENT.RESET_INPUT);
@@ -45,12 +63,15 @@ export class SkillPicker extends Component {
     }
 
     private _selectCard(index: number) {
+        if (!this._picked[index]) return;
         this._selectedIndex = index;
         this._refreshVisuals();
     }
 
     private _onConfirm() {
         if (this._selectedIndex < 0) return;
+        const picked = this._picked[this._selectedIndex];
+        if (picked) getSkillTree().upgrade(picked.id);
         director.resume();
         GameState.skillPickerOpen = false;
         this.node.active = false;

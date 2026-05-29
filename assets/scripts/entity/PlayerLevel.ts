@@ -1,7 +1,9 @@
 import { _decorator, Component, Label } from 'cc';
 import { Enemy } from './Enemy';
+import { DaodunFighter } from './DaodunFighter';
 import { ExpBar } from '../system/ExpBar';
 import { SkillPicker } from '../system/SkillPicker';
+import { getSkillTree } from '../skills/SkillTree';
 const { ccclass, property } = _decorator;
 
 @ccclass('PlayerLevel')
@@ -36,6 +38,8 @@ export class PlayerLevel extends Component {
 
     onEnable() {
         Enemy.onKilled = (exp) => this.gainExp(exp);
+        const fighter = this.node.getComponent(DaodunFighter);
+        if (fighter) getSkillTree().bindFighter(fighter);
         this._refreshUI();
     }
 

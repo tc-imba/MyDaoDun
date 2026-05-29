@@ -1,4 +1,5 @@
-import { _decorator, Component, Graphics, Color } from 'cc';
+import { _decorator, Component, Graphics, Color, Label } from 'cc';
+import { SkillNode } from '../skills/SkillTree';
 const { ccclass, property, executeInEditMode } = _decorator;
 
 @ccclass('SkillCard')
@@ -25,14 +26,32 @@ export class SkillCard extends Component {
     @property
     highlightedBorderColor: Color = new Color(255, 220, 80, 255);
 
+    @property({ type: Label, tooltip: 'Multi-line label for skill name / level / effect.' })
+    contentLabel: Label | null = null;
+
     private _g: Graphics | null = null;
     private _highlighted: boolean = false;
+    private _skillId: string = '';
 
     get highlighted(): boolean { return this._highlighted; }
+    get skillId(): string { return this._skillId; }
 
     onLoad() {
         this._g = this.getComponent(Graphics);
         this._redraw();
+    }
+
+    bind(skill: SkillNode) {
+        this._skillId = skill.id;
+        if (this.contentLabel) {
+            const next = skill.currentLevel + 1;
+            this.contentLabel.string = `${skill.name}\nLv ${skill.currentLevel} → ${next}\n\n${skill.describeLevel(next)}`;
+        }
+    }
+
+    clearBinding() {
+        this._skillId = '';
+        if (this.contentLabel) this.contentLabel.string = '';
     }
 
     setHighlighted(h: boolean) {

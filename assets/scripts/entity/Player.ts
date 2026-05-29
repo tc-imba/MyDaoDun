@@ -13,6 +13,9 @@ export class Player extends Component {
     @property
     speed: number = 300;
 
+    /** Facing direction in radians (atan2 result). Updated each frame the player moves. */
+    facingAngle: number = Math.PI;
+
     private _tmpPos: Vec3 = new Vec3();
     private _keyW = false;
     private _keyA = false;
@@ -59,6 +62,8 @@ export class Player extends Component {
         const len = Math.hypot(dx, dy);
         if (len === 0) return;
         if (len > 1) { dx /= len; dy /= len; }
+
+        this.facingAngle = Math.atan2(dy, dx);
 
         if (dx !== 0) {
             const s = this.node.scale;
