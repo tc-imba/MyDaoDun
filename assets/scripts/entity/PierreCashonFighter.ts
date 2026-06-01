@@ -67,6 +67,7 @@ export class PierreCashonFighter extends Component {
     speedMult: number = 1.0;
     jokers: number = 0;
     faceCardBias: number = 0;
+    psychic: number = 0;
 
     private _timer: number = 0;
     private _myPos: Vec3 = new Vec3();
@@ -191,12 +192,97 @@ export class PierreCashonFighter extends Component {
         return null;
     }
 
+    /** Deterministic poker rank of a hand (0 high card … 9 royal flush). Jokers are wild. */
+    private _handRank(cards: DrawnCard[]): number {
+        const real = cards.filter(c => !c.isJoker);
+        const jokers = cards.length - real.length;
+
+        const rankCount = new Map<number, number>();
+        for (const c of real) rankCount.set(c.rank, (rankCount.get(c.rank) || 0) + 1);
+        const counts = [...rankCount.values()].sort((a, b) => b - a);
+        const top = (counts[0] || 0) + jokers;
+        const second = counts[1] || 0;
+
+        const suitCount = new Map<Suit, number>();
+        for (const c of real) suitCount.set(c.suit, (suitCount.get(c.suit) || 0) + 1);
+        let maxSuit = 0;
+        let flushSuit: Suit | null = null;
+        for (const [s, n] of suitCount) {
+            if (n > maxSuit) { maxSuit = n; flushSuit = s; }
+        }
+        const isFlush = cards.length >= 5 && (maxSuit + jokers) >= 5;
+
+        const isStraight = (() => {
+            if (cards.length < 5) return false;
+            const set = new Set<number>();
+            for (const r of rankCount.keys()) set.add(r);
+            if (set.has(1)) set.add(14);
+            for (let lo = 1; lo <= 10; lo++) {
+                let need = 0;
+                for (let k = 0; k < 5; k++) if (!set.has(lo + k)) need++;
+                if (need <= jokers) return true;
+            }
+            return false;
+        })();
+
+        const isRoyal = (() => {
+            if (!isFlush || !isStraight || !flushSuit) return false;
+            const fr = new Set<number>();
+            for (const c of real) if (c.suit === flushSuit) fr.add(c.rank);
+            const needed = [10, 11, 12, 13, 1];
+            let miss = 0;
+            for (const r of needed) if (!fr.has(r)) miss++;
+            return miss <= jokers;
+        })();
+
+        if (isRoyal) return 9;
+        if (isFlush && isStraight) return 8;
+        if (top >= 4) return 7;
+        if (top >= 3 && second >= 2) return 6;
+        if (isFlush) return 5;
+        if (isStraight) return 4;
+        if (top >= 3) return 3;
+        if (top >= 2 && second >= 2) return 2;
+        if (top >= 2) return 1;
+        return 0;
+    }
+
+    /**
+     * Psychic Power: swap one card in the hand for the concrete card that
+     * yields the highest poker rank. The replacement must differ from every
+     * other (non-joker) card already in the hand. Never worsens the hand.
+     */
+    private _applyPsychic(cards: DrawnCard[]) {
+        if (cards.length === 0) return;
+        let bestScore = this._handRank(cards);
+        let best: DrawnCard[] | null = null;
+        for (let i = 0; i < cards.length; i++) {
+            for (let r = 1; r <= 13; r++) {
+                for (const s of SUITS) {
+                    let dup = false;
+                    for (let k = 0; k < cards.length; k++) {
+                        if (k === i) continue;
+                        const o = cards[k];
+                        if (!o.isJoker && o.rank === r && o.suit === s) { dup = true; break; }
+                    }
+                    if (dup) continue;
+                    const cand = cards.slice();
+                    cand[i] = { rank: r as Rank, suit: s, isJoker: false };
+                    const score = this._handRank(cand);
+                    if (score > bestScore) { bestScore = score; best = cand; }
+                }
+            }
+        }
+        if (best) for (let i = 0; i < cards.length; i++) cards[i] = best[i];
+    }
+
     private _fireVolley(target: Enemy) {
         if (!this.worldNode) return;
         const tree = getSkillTree();
         const n = Math.min(5, 1 + this.handSize);
 
         const cards = this._drawHand(n);
+        if (this.psychic > 0) this._applyPsychic(cards);
         const hand = this._evaluateHand(cards, tree);
         const mod = hand ? HAND_MOD[hand] : { pierce: false, homing: false, aoe: 0, damageMul: 1.0 };
 

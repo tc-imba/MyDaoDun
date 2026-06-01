@@ -119,36 +119,13 @@ export class SkillTree {
             apply: (lvl, t) => { if (t.pierre) t.pierre.handSize = lvl; },
         });
         this._add({
-            id: 'p_card_damage',
-            get name() { return getI18n().t('skill.p_card_damage.name'); },
+            id: 'p_psychic',
+            get name() { return getI18n().t('skill.p_psychic.name'); },
             parentId: 'pierre_cashon',
-            maxLevel: 5,
+            maxLevel: 1,
             currentLevel: 0,
-            describeLevel: () => getI18n().t('skill.p_card_damage.desc'),
-            apply: (_lvl, t) => { if (t.pierre) t.pierre.bonusDamage += 1; },
-        });
-        this._add({
-            id: 'p_reach',
-            get name() { return getI18n().t('skill.p_reach.name'); },
-            parentId: 'pierre_cashon',
-            maxLevel: 5,
-            currentLevel: 0,
-            describeLevel: () => getI18n().t('skill.p_reach.desc'),
-            apply: (_lvl, t) => {
-                if (t.pierre) {
-                    t.pierre.rangeMult *= 1.2;
-                    t.pierre.speedMult *= 1.2;
-                }
-            },
-        });
-        this._add({
-            id: 'p_stacked_deck',
-            get name() { return getI18n().t('skill.p_stacked_deck.name'); },
-            parentId: 'pierre_cashon',
-            maxLevel: 3,
-            currentLevel: 0,
-            describeLevel: lvl => getI18n().tf('skill.p_stacked_deck.desc', lvl * 15),
-            apply: (lvl, t) => { if (t.pierre) t.pierre.faceCardBias = lvl; },
+            describeLevel: () => getI18n().t('skill.p_psychic.desc'),
+            apply: (lvl, t) => { if (t.pierre) t.pierre.psychic = lvl; },
         });
         this._add({
             id: 'p_joker',
