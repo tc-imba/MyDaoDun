@@ -1,5 +1,6 @@
 import { DaodunFighter } from '../entity/DaodunFighter';
 import { PierreCashonFighter } from '../entity/PierreCashonFighter';
+import { getI18n } from '../core/I18n';
 
 export interface SkillNode {
     id: string;
@@ -38,30 +39,30 @@ export class SkillTree {
     private _defineDaodun() {
         this._add({
             id: 'daodun',
-            name: 'Daodun',
+            get name() { return getI18n().t('skill.daodun.name'); },
             parentId: null,
             maxLevel: 1,
             currentLevel: 1,
-            describeLevel: () => 'Base style',
+            describeLevel: () => getI18n().t('skill.daodun.desc'),
             apply: () => { /* root, no effect */ },
             prereq: t => !!t.fighter,
         });
         this._add({
             id: 'radius',
-            name: 'Radius',
+            get name() { return getI18n().t('skill.radius.name'); },
             parentId: 'daodun',
             maxLevel: 5,
             currentLevel: 0,
-            describeLevel: () => 'Attack radius +30',
+            describeLevel: () => getI18n().t('skill.radius.desc'),
             apply: (_lvl, tree) => { if (tree.fighter) tree.fighter.attackRange += 30; },
         });
         this._add({
             id: 'degree',
-            name: 'Degree',
+            get name() { return getI18n().t('skill.degree.name'); },
             parentId: 'daodun',
             maxLevel: 5,
             currentLevel: 0,
-            describeLevel: () => 'Attack arc +30°',
+            describeLevel: () => getI18n().t('skill.degree.desc'),
             apply: (_lvl, tree) => {
                 if (tree.fighter) {
                     tree.fighter.fanAngleDeg = Math.min(360, tree.fighter.fanAngleDeg + 30);
@@ -70,20 +71,20 @@ export class SkillTree {
         });
         this._add({
             id: 'damage',
-            name: 'Damage',
+            get name() { return getI18n().t('skill.damage.name'); },
             parentId: 'daodun',
             maxLevel: 5,
             currentLevel: 0,
-            describeLevel: () => 'Attack damage +1',
+            describeLevel: () => getI18n().t('skill.damage.desc'),
             apply: (_lvl, tree) => { if (tree.fighter) tree.fighter.damage += 1; },
         });
         this._add({
             id: 'speed',
-            name: 'Speed',
+            get name() { return getI18n().t('skill.speed.name'); },
             parentId: 'daodun',
             maxLevel: 5,
             currentLevel: 0,
-            describeLevel: () => 'Attack interval -0.05s',
+            describeLevel: () => getI18n().t('skill.speed.desc'),
             apply: (_lvl, tree) => {
                 if (tree.fighter) {
                     tree.fighter.attackInterval = Math.max(0.1, tree.fighter.attackInterval - 0.05);
@@ -98,11 +99,11 @@ export class SkillTree {
         // once currentLevel >= 1, and is gated below by the prereq.
         this._add({
             id: 'pierre_cashon',
-            name: 'Pierre Cashon',
+            get name() { return getI18n().t('skill.pierre_cashon.name'); },
             parentId: null,
             maxLevel: 1,
             currentLevel: 0,
-            describeLevel: () => 'Unlock: throw a poker card at the nearest enemy',
+            describeLevel: () => getI18n().t('skill.pierre_cashon.desc'),
             apply: () => { /* root */ },
             prereq: t => !!t.pierre,
         });
@@ -110,29 +111,29 @@ export class SkillTree {
         // Basic stats.
         this._add({
             id: 'p_hand_size',
-            name: 'Hand Size',
+            get name() { return getI18n().t('skill.p_hand_size.name'); },
             parentId: 'pierre_cashon',
             maxLevel: 4,
             currentLevel: 0,
-            describeLevel: lvl => `Fire ${lvl + 1} cards per volley`,
+            describeLevel: lvl => getI18n().tf('skill.p_hand_size.desc', lvl + 1),
             apply: (lvl, t) => { if (t.pierre) t.pierre.handSize = lvl; },
         });
         this._add({
             id: 'p_card_damage',
-            name: 'High Roller',
+            get name() { return getI18n().t('skill.p_card_damage.name'); },
             parentId: 'pierre_cashon',
             maxLevel: 5,
             currentLevel: 0,
-            describeLevel: () => 'Card damage +1',
+            describeLevel: () => getI18n().t('skill.p_card_damage.desc'),
             apply: (_lvl, t) => { if (t.pierre) t.pierre.bonusDamage += 1; },
         });
         this._add({
             id: 'p_reach',
-            name: "Dealer's Reach",
+            get name() { return getI18n().t('skill.p_reach.name'); },
             parentId: 'pierre_cashon',
             maxLevel: 5,
             currentLevel: 0,
-            describeLevel: () => 'Range & speed +20%',
+            describeLevel: () => getI18n().t('skill.p_reach.desc'),
             apply: (_lvl, t) => {
                 if (t.pierre) {
                     t.pierre.rangeMult *= 1.2;
@@ -142,120 +143,120 @@ export class SkillTree {
         });
         this._add({
             id: 'p_stacked_deck',
-            name: 'Stacked Deck',
+            get name() { return getI18n().t('skill.p_stacked_deck.name'); },
             parentId: 'pierre_cashon',
             maxLevel: 3,
             currentLevel: 0,
-            describeLevel: lvl => `Face cards crit; +${lvl * 15}% face-card draws`,
+            describeLevel: lvl => getI18n().tf('skill.p_stacked_deck.desc', lvl * 15),
             apply: (lvl, t) => { if (t.pierre) t.pierre.faceCardBias = lvl; },
         });
         this._add({
             id: 'p_joker',
-            name: 'Wild Joker',
+            get name() { return getI18n().t('skill.p_joker.name'); },
             parentId: 'pierre_cashon',
             maxLevel: 2,
             currentLevel: 0,
-            describeLevel: () => 'Adds a joker (wildcard) to your deck',
+            describeLevel: () => getI18n().t('skill.p_joker.desc'),
             apply: (lvl, t) => { if (t.pierre) t.pierre.jokers = lvl; },
         });
 
         // Hand-detection sub-branch.
         this._add({
             id: 'p_hand_reader',
-            name: 'Hand Reader',
+            get name() { return getI18n().t('skill.p_hand_reader.name'); },
             parentId: 'pierre_cashon',
             maxLevel: 3,
             currentLevel: 0,
-            describeLevel: lvl => `Hand proc multiplier ${[20, 40, 60][lvl - 1] ?? 60}%`,
+            describeLevel: lvl => getI18n().tf('skill.p_hand_reader.desc', [20, 40, 60][lvl - 1] ?? 60),
             apply: () => { /* read at evaluation time */ },
             prereq: t => (t.get('p_hand_size')?.currentLevel ?? 0) >= 1,
         });
         this._add({
             id: 'p_pair',
-            name: 'One Pair',
+            get name() { return getI18n().t('skill.p_pair.name'); },
             parentId: 'p_hand_reader',
             maxLevel: 3,
             currentLevel: 0,
-            describeLevel: () => 'Pairs explode in a small AoE',
+            describeLevel: () => getI18n().t('skill.p_pair.desc'),
             apply: () => { /* read at evaluation time */ },
         });
         this._add({
             id: 'p_two_pair',
-            name: 'Two Pair',
+            get name() { return getI18n().t('skill.p_two_pair.name'); },
             parentId: 'p_pair',
             maxLevel: 2,
             currentLevel: 0,
-            describeLevel: () => 'Two pairs: bigger AoE + bonus dmg',
+            describeLevel: () => getI18n().t('skill.p_two_pair.desc'),
             apply: () => { /* read at evaluation time */ },
             prereq: t => (t.get('p_hand_size')?.currentLevel ?? 0) >= 3,
         });
         this._add({
             id: 'p_three_kind',
-            name: 'Three of a Kind',
+            get name() { return getI18n().t('skill.p_three_kind.name'); },
             parentId: 'p_pair',
             maxLevel: 3,
             currentLevel: 0,
-            describeLevel: () => 'Triples pierce through enemies',
+            describeLevel: () => getI18n().t('skill.p_three_kind.desc'),
             apply: () => { /* read at evaluation time */ },
             prereq: t => (t.get('p_hand_size')?.currentLevel ?? 0) >= 2,
         });
         this._add({
             id: 'p_straight',
-            name: 'Straight',
+            get name() { return getI18n().t('skill.p_straight.name'); },
             parentId: 'p_three_kind',
             maxLevel: 2,
             currentLevel: 0,
-            describeLevel: () => '5 consecutive ranks: piercing volley',
+            describeLevel: () => getI18n().t('skill.p_straight.desc'),
             apply: () => { /* read at evaluation time */ },
             prereq: t => (t.get('p_hand_size')?.currentLevel ?? 0) >= 4,
         });
         this._add({
             id: 'p_four_kind',
-            name: 'Four of a Kind',
+            get name() { return getI18n().t('skill.p_four_kind.name'); },
             parentId: 'p_three_kind',
             maxLevel: 2,
             currentLevel: 0,
-            describeLevel: () => 'Quads: homing volley',
+            describeLevel: () => getI18n().t('skill.p_four_kind.desc'),
             apply: () => { /* read at evaluation time */ },
             prereq: t => (t.get('p_hand_size')?.currentLevel ?? 0) >= 3,
         });
         this._add({
             id: 'p_full_house',
-            name: 'Full House',
+            get name() { return getI18n().t('skill.p_full_house.name'); },
             parentId: 'p_three_kind',
             maxLevel: 2,
             currentLevel: 0,
-            describeLevel: () => '3+2: huge AoE detonation',
+            describeLevel: () => getI18n().t('skill.p_full_house.desc'),
             apply: () => { /* read at evaluation time */ },
             prereq: t => (t.get('p_hand_size')?.currentLevel ?? 0) >= 4,
         });
         this._add({
             id: 'p_flush',
-            name: 'Flush',
+            get name() { return getI18n().t('skill.p_flush.name'); },
             parentId: 'p_hand_reader',
             maxLevel: 3,
             currentLevel: 0,
-            describeLevel: () => 'Same suit: all cards home',
+            describeLevel: () => getI18n().t('skill.p_flush.desc'),
             apply: () => { /* read at evaluation time */ },
             prereq: t => (t.get('p_hand_size')?.currentLevel ?? 0) >= 4,
         });
         this._add({
             id: 'p_straight_flush',
-            name: 'Straight Flush',
+            get name() { return getI18n().t('skill.p_straight_flush.name'); },
             parentId: 'p_flush',
             maxLevel: 1,
             currentLevel: 0,
-            describeLevel: () => 'Straight + flush: homing AoE wipe',
+            describeLevel: () => getI18n().t('skill.p_straight_flush.desc'),
             apply: () => { /* read at evaluation time */ },
             prereq: t => (t.get('p_flush')?.currentLevel ?? 0) >= 2,
         });
         this._add({
             id: 'p_royal_flush',
-            name: 'Royal Flush',
+            get name() { return getI18n().t('skill.p_royal_flush.name'); },
             parentId: 'p_straight_flush',
             maxLevel: 1,
             currentLevel: 0,
-            describeLevel: () => '10-J-Q-K-A suited: screen nuke',
+            describeLevel: () => getI18n().t('skill.p_royal_flush.desc'),
             apply: () => { /* read at evaluation time */ },
         });
     }
