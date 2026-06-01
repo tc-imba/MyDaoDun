@@ -57,6 +57,8 @@ We've lost `SkillPicker`, `AttackRange`, and other nodes to this multiple times.
 
 Only then is the editor's view in sync with disk. Do not click Save until you've reloaded. The same applies after Claude makes scene changes via MCP — close + reopen before you edit further.
 
+**Claude rule:** before any `git pull`, `git checkout`, `git rebase`, `git reset`, or other operation that mutates tracked files on disk, call `mcp__cocos-creator__scene_save_scene` first if the Cocos MCP is connected. This flushes the editor's in-memory scene to disk so it is clean; Cocos's file watcher then auto-reloads the post-pull version because there are no unsaved changes blocking it. Without this flush, the editor stays on its pre-pull copy, and the next save inside this session silently overwrites whatever the pull brought in — the exact desync pattern above. A save right before a pull is a no-op when nothing changed and a defense when something did.
+
 Structural mitigation: anything that doesn't need to live in `Main.scene` directly (modals, HUD overlays, debug overlays) should live as a **prefab** under `assets/prefabs/` and be instantiated in the scene as a prefab reference. That way a teammate editing Player can't accidentally overwrite an unrelated UI subtree — only the prefab asset itself is shared, and prefab files conflict less catastrophically.
 
 ## Cocos MCP server limitations
