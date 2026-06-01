@@ -23,11 +23,11 @@
   "skill.p_hand_size.name": "Hand Size",
   "skill.p_hand_size.desc": "Fire {0} cards per volley",
   "skill.p_psychic.name": "Psychic Power",
-  "skill.p_psychic.desc": "Each hand, swap one card to the best card that makes the strongest hand",
-  "skill.p_joker.name": "Wild Joker",
-  "skill.p_joker.desc": "Adds a joker (wildcard) to your deck",
-  "skill.p_hand_reader.name": "Hand Reader",
-  "skill.p_hand_reader.desc": "Hand proc multiplier {0}%",
+  "skill.p_psychic.desc": "{0}% chance each hand to swap one card to the best card for the strongest hand",
+  "skill.p_joker_black.name": "Black Joker",
+  "skill.p_joker_black.desc": "Add a black joker (wildcard) to your deck",
+  "skill.p_joker_red.name": "Red Joker",
+  "skill.p_joker_red.desc": "Add a red joker; black + red in one hand deals full-screen damage",
   "skill.p_pair.name": "One Pair",
   "skill.p_pair.desc": "Pairs explode in a small AoE",
   "skill.p_two_pair.name": "Two Pair",
@@ -43,7 +43,5 @@
   "skill.p_flush.name": "Flush",
   "skill.p_flush.desc": "Same suit: all cards home",
   "skill.p_straight_flush.name": "Straight Flush",
-  "skill.p_straight_flush.desc": "Straight + flush: homing AoE wipe",
-  "skill.p_royal_flush.name": "Royal Flush",
-  "skill.p_royal_flush.desc": "10-J-Q-K-A suited: screen nuke"
+  "skill.p_straight_flush.desc": "Straight & royal flush: homing AoE screen wipe"
 }

@@ -11,6 +11,7 @@ interface DrawnCard {
     rank: Rank;
     suit: Suit;
     isJoker: boolean;
+    jokerColor?: 'black' | 'red';
 }
 
 type HandName =
@@ -23,18 +24,23 @@ interface HandModifier {
     homing: boolean;
     aoe: number;
     damageMul: number;
+    /** Fire the whole volley as an evenly-spaced 360° ring instead of a forward fan. */
+    radial?: boolean;
+    /** Extra projectiles added to the volley on top of the drawn cards. */
+    count?: number;
 }
 
 const HAND_MOD: Record<HandName, HandModifier> = {
+    // One Pair & Three of a Kind are intentionally left as-is.
     'One Pair':        { pierce: false, homing: false, aoe:  50, damageMul: 1.0 },
-    'Two Pair':        { pierce: false, homing: false, aoe:  70, damageMul: 1.2 },
+    'Two Pair':        { pierce: false, homing: false, aoe:  90, damageMul: 1.4, count: 2 },
     'Three of a Kind': { pierce: true,  homing: false, aoe:   0, damageMul: 1.2 },
-    'Straight':        { pierce: true,  homing: false, aoe:   0, damageMul: 1.5 },
-    'Flush':           { pierce: false, homing: true,  aoe:   0, damageMul: 1.3 },
-    'Full House':      { pierce: false, homing: false, aoe: 130, damageMul: 2.0 },
-    'Four of a Kind':  { pierce: false, homing: true,  aoe:   0, damageMul: 1.5 },
-    'Straight Flush':  { pierce: false, homing: true,  aoe: 100, damageMul: 2.5 },
-    'Royal Flush':     { pierce: true,  homing: true,  aoe: 160, damageMul: 3.0 },
+    'Straight':        { pierce: true,  homing: true,  aoe:   0, damageMul: 1.8, count: 2 },
+    'Flush':           { pierce: false, homing: true,  aoe:  60, damageMul: 1.6, radial: true },
+    'Full House':      { pierce: true,  homing: false, aoe: 170, damageMul: 2.4, count: 3 },
+    'Four of a Kind':  { pierce: true,  homing: true,  aoe:  90, damageMul: 2.6, count: 4 },
+    'Straight Flush':  { pierce: true,  homing: true,  aoe: 140, damageMul: 3.2, radial: true, count: 6 },
+    'Royal Flush':     { pierce: true,  homing: true,  aoe: 230, damageMul: 4.5, radial: true, count: 12 },
 };
 
 @ccclass('PierreCashonFighter')
@@ -65,7 +71,8 @@ export class PierreCashonFighter extends Component {
     bonusDamage: number = 0;
     rangeMult: number = 1.0;
     speedMult: number = 1.0;
-    jokers: number = 0;
+    blackJoker: number = 0;
+    redJoker: number = 0;
     faceCardBias: number = 0;
     psychic: number = 0;
 
@@ -103,12 +110,14 @@ export class PierreCashonFighter extends Component {
 
     private _drawHand(n: number): DrawnCard[] {
         const cards: DrawnCard[] = [];
-        let jokersLeft = this.jokers;
+        const jokerQueue: ('black' | 'red')[] = [];
+        if (this.blackJoker > 0) jokerQueue.push('black');
+        if (this.redJoker > 0) jokerQueue.push('red');
         for (let i = 0; i < n; i++) {
             // 25% per card of converting one of our available jokers into a wildcard slot.
-            if (jokersLeft > 0 && Math.random() < 0.25) {
-                jokersLeft--;
-                cards.push({ rank: 1, suit: 'S', isJoker: true });
+            if (jokerQueue.length > 0 && Math.random() < 0.25) {
+                const color = jokerQueue.shift()!;
+                cards.push({ rank: 1, suit: 'S', isJoker: true, jokerColor: color });
                 continue;
             }
             let rank: Rank;
@@ -125,9 +134,7 @@ export class PierreCashonFighter extends Component {
     }
 
     private _evaluateHand(cards: DrawnCard[], tree: SkillTree): HandName | null {
-        const reader = tree.get('p_hand_reader');
-        if (!reader || reader.currentLevel < 1) return null;
-        const procMul = [0, 0.20, 0.40, 0.60][reader.currentLevel] ?? 0.60;
+        const procMul = 0.4;
         const lvl = (id: string) => tree.get(id)?.currentLevel ?? 0;
 
         const real = cards.filter(c => !c.isJoker);
@@ -173,7 +180,7 @@ export class PierreCashonFighter extends Component {
 
         // Best → worst. Each gated by its node level and a per-hand base chance, modulated by Hand Reader.
         const candidates: { id: string, name: HandName, base: number, ok: boolean }[] = [
-            { id: 'p_royal_flush',    name: 'Royal Flush',     base: 1.00, ok: isRoyal },
+            { id: 'p_straight_flush', name: 'Royal Flush',     base: 1.00, ok: isRoyal },
             { id: 'p_straight_flush', name: 'Straight Flush',  base: 0.80, ok: isFlush && isStraight && !isRoyal },
             { id: 'p_four_kind',      name: 'Four of a Kind',  base: 0.60, ok: top >= 4 },
             { id: 'p_full_house',     name: 'Full House',      base: 0.50, ok: top >= 3 && second >= 2 },
@@ -276,13 +283,28 @@ export class PierreCashonFighter extends Component {
         if (best) for (let i = 0; i < cards.length; i++) cards[i] = best[i];
     }
 
+    /** Damage every enemy currently alive — the black+red joker payoff. */
+    private _fullScreenDamage() {
+        const dmg = (this.baseDamage + this.bonusDamage) * 8 + 10;
+        for (const e of Enemy.all) {
+            if (e.node && e.node.isValid) e.takeDamage(dmg);
+        }
+    }
+
     private _fireVolley(target: Enemy) {
         if (!this.worldNode) return;
         const tree = getSkillTree();
         const n = Math.min(5, 1 + this.handSize);
 
         const cards = this._drawHand(n);
-        if (this.psychic > 0) this._applyPsychic(cards);
+        // Psychic: level × 20% chance per volley to swap one card to the best hand.
+        if (this.psychic > 0 && Math.random() < this.psychic * 0.2) this._applyPsychic(cards);
+
+        // Black + Red joker together in one hand: full-screen damage.
+        const hasBlack = cards.some(c => c.isJoker && c.jokerColor === 'black');
+        const hasRed = cards.some(c => c.isJoker && c.jokerColor === 'red');
+        if (hasBlack && hasRed) this._fullScreenDamage();
+
         const hand = this._evaluateHand(cards, tree);
         const mod = hand ? HAND_MOD[hand] : { pierce: false, homing: false, aoe: 0, damageMul: 1.0 };
 
@@ -293,10 +315,18 @@ export class PierreCashonFighter extends Component {
         const spread = this.fanSpreadDeg * Math.PI / 180;
         const speed = this.baseSpeed * this.speedMult;
 
-        for (let i = 0; i < cards.length; i++) {
-            const c = cards[i];
-            const t = n === 1 ? 0.5 : i / (n - 1);
-            const angle = aimAng + (t - 0.5) * spread;
+        // Total projectiles = drawn cards + the hand's bonus count.
+        const projectiles = cards.length + (mod.count ?? 0);
+
+        for (let i = 0; i < projectiles; i++) {
+            const c = cards[i % cards.length];
+            let angle: number;
+            if (mod.radial) {
+                angle = aimAng + (i / projectiles) * Math.PI * 2;
+            } else {
+                const t = projectiles === 1 ? 0.5 : i / (projectiles - 1);
+                angle = aimAng + (t - 0.5) * spread;
+            }
 
             const rankVal = c.rank === 1 ? 14 : c.rank; // ace high for damage
             const rankDmg = Math.max(1, Math.floor(rankVal * 0.4));
