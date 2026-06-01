@@ -1,5 +1,12 @@
-import { _decorator, Component, Graphics, Color } from 'cc';
+import { _decorator, Component, Graphics, Color, Enum } from 'cc';
 const { ccclass, property, executeInEditMode, requireComponent } = _decorator;
+
+enum InsetMode {
+    CENTER = 0,
+    INSIDE = 1,
+    OUTSIDE = 2,
+}
+Enum(InsetMode);
 
 /**
  * Draws a single rectangular outline centered on the node origin.
@@ -27,10 +34,10 @@ export class RectOutline extends Component {
     thickness: number = 3;
 
     @property({
+        type: Enum(InsetMode),
         tooltip: 'Where the stroke sits relative to the width/height box. CENTER (default) splits the line on the edge; INSIDE keeps the line fully within the box; OUTSIDE expands the line fully outside the box.',
-        type: ({ CENTER: 0, INSIDE: 1, OUTSIDE: 2 } as any),
     })
-    insetMode: number = 0;
+    insetMode: InsetMode = InsetMode.CENTER;
 
     private _g: Graphics | null = null;
     private _lastKey: string = '';
