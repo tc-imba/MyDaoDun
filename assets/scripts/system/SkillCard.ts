@@ -72,6 +72,7 @@ export class SkillCard extends Component {
     private _applyOutline() {
         if (this.outline) {
             this.outline.color = this._highlighted ? this.highlightedBorderColor : this.borderColor;
+            this.outline.redraw();
         }
     }
 }

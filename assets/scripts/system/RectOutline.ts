@@ -60,6 +60,13 @@ export class RectOutline extends Component {
         this._redraw();
     }
 
+    /** Force an immediate repaint — use after changing color while the
+     *  director is paused (update() is frozen, e.g. the skill picker). */
+    redraw() {
+        this._lastKey = '';
+        this._redraw();
+    }
+
     private _redraw() {
         if (!this._g) this._g = this.getComponent(Graphics);
         if (!this._g || this.thickness <= 0) {
