@@ -97,3 +97,5 @@ Before any operation that publishes to a remote — **`git push`** (in any form,
 Show what's about to be published first (`git log`, `gh pr view`, etc.) so the user can verify, then state explicitly that you are waiting on `submit` or `push`. One authorization message authorizes one push or PR action — do not assume the next one is also approved.
 
 Applies to every push, every session, every commit set. This rule overrides any prior "go ahead and push" approval that referred to a different set of commits.
+
+**Bug-fix instructions are not authorizations.** "fix it", "broken again", "this is wrong", "redo X", etc. tell you *what* to repair — they do **not** authorize publishing the repair. Even when the failure mode and the fix are obviously continuous with the previous push cycle, commit locally and stop. Then list the pending SHAs and wait for `submit` / `push`. The most common drift is auto-bundling a push at the end of a fix because the previous turn ended that way — don't.
