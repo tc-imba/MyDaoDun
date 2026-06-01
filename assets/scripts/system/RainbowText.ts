@@ -38,6 +38,15 @@ export class RainbowText extends Component {
         this._rt = this.getComponent(RichText);
     }
 
+    // Rebuild immediately on activation — the skill picker opens with
+    // director.pause(), which freezes update(); onEnable still fires when
+    // the card is shown, so the per-card title text takes effect.
+    onEnable() {
+        this._lastKey = '';
+        if (!this._rt) this._rt = this.getComponent(RichText);
+        if (this._rt) this._rt.string = this._buildBBCode();
+    }
+
     update() {
         const key = `${this.text}|${this.startHue}|${this.endHue}|${this.saturation}|${this.lightness}`;
         if (key === this._lastKey) return;

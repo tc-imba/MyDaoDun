@@ -30,6 +30,16 @@ export class TextOutline extends Component {
         this._resolveTarget();
     }
 
+    // Apply immediately on activation — the skill picker pauses the director,
+    // which freezes lateUpdate(); onEnable still fires when the card is shown.
+    // Runs after RainbowText.onEnable (later component index) so the RichText
+    // string is already built before we wrap it.
+    onEnable() {
+        this._lastWrapped = '';
+        this._lastKey = '';
+        this.lateUpdate();
+    }
+
     private _resolveTarget() {
         // Prefer RichText if both are present.
         this._rt = this.getComponent(RichText);

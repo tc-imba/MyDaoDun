@@ -1,35 +1,41 @@
-import { _decorator, Component, Graphics, Color, Label } from 'cc';
+import { _decorator, Component, Color, Label, RichText } from 'cc';
+import { RainbowText } from './RainbowText';
+import { RectOutline } from './RectOutline';
 import { SkillNode } from '../skills/SkillTree';
-const { ccclass, property, executeInEditMode } = _decorator;
+const { ccclass, property } = _decorator;
 
+/**
+ * Controller for a single skill choice card (built from the Card prefab
+ * layout). Populates the split text nodes — title / level-from / level-to /
+ * description — and recolors the card outline on highlight.
+ *
+ * Visuals (3-colour background, border) are owned by the prefab's
+ * TriColorPanel + RectOutline; this component only writes text and flips
+ * the outline colour.
+ */
 @ccclass('SkillCard')
-@executeInEditMode(true)
 export class SkillCard extends Component {
-    @property
-    width: number = 180;
+    @property({ type: RainbowText, tooltip: 'Title text (skill name). Driven via RainbowText.text so it stays rainbow.' })
+    titleText: RainbowText | null = null;
 
-    @property
-    height: number = 260;
+    @property({ type: Label, tooltip: 'Label showing the current level (left of the arrow).' })
+    lvFromLabel: Label | null = null;
 
-    @property
-    borderWidth: number = 3;
+    @property({ type: Label, tooltip: 'Label showing the next level (right of the arrow).' })
+    lvToLabel: Label | null = null;
 
-    @property
-    bgColor: Color = new Color(60, 60, 80, 230);
+    @property({ type: RichText, tooltip: 'Description text explaining what the skill does.' })
+    descriptionText: RichText | null = null;
 
-    @property
-    highlightedBgColor: Color = new Color(80, 100, 140, 240);
+    @property({ type: RectOutline, tooltip: 'Card border, recolored on highlight.' })
+    outline: RectOutline | null = null;
 
-    @property
+    @property(Color)
     borderColor: Color = new Color(120, 120, 120, 255);
 
-    @property
+    @property(Color)
     highlightedBorderColor: Color = new Color(255, 220, 80, 255);
 
-    @property({ type: Label, tooltip: 'Multi-line label for skill name / level / effect.' })
-    contentLabel: Label | null = null;
-
-    private _g: Graphics | null = null;
     private _highlighted: boolean = false;
     private _skillId: string = '';
 
@@ -37,43 +43,35 @@ export class SkillCard extends Component {
     get skillId(): string { return this._skillId; }
 
     onLoad() {
-        this._g = this.getComponent(Graphics);
-        this._redraw();
+        this._applyOutline();
     }
 
     bind(skill: SkillNode) {
         this._skillId = skill.id;
-        if (this.contentLabel) {
-            const next = skill.currentLevel + 1;
-            this.contentLabel.string = `${skill.name}\nLv ${skill.currentLevel} → ${next}\n\n${skill.describeLevel(next)}`;
-        }
+        const next = skill.currentLevel + 1;
+        if (this.titleText) this.titleText.text = skill.name;
+        if (this.lvFromLabel) this.lvFromLabel.string = `Lv ${skill.currentLevel}`;
+        if (this.lvToLabel) this.lvToLabel.string = `Lv ${next}`;
+        if (this.descriptionText) this.descriptionText.string = skill.describeLevel(next);
     }
 
     clearBinding() {
         this._skillId = '';
-        if (this.contentLabel) this.contentLabel.string = '';
+        if (this.titleText) this.titleText.text = '';
+        if (this.lvFromLabel) this.lvFromLabel.string = '';
+        if (this.lvToLabel) this.lvToLabel.string = '';
+        if (this.descriptionText) this.descriptionText.string = '';
     }
 
     setHighlighted(h: boolean) {
         if (this._highlighted === h) return;
         this._highlighted = h;
-        this._redraw();
+        this._applyOutline();
     }
 
-    private _redraw() {
-        if (!this._g) return;
-        const g = this._g;
-        const w = this.width;
-        const h = this.height;
-        const x = -w * 0.5;
-        const y = -h * 0.5;
-        g.clear();
-        g.fillColor = this._highlighted ? this.highlightedBgColor : this.bgColor;
-        g.rect(x, y, w, h);
-        g.fill();
-        g.lineWidth = this.borderWidth;
-        g.strokeColor = this._highlighted ? this.highlightedBorderColor : this.borderColor;
-        g.rect(x, y, w, h);
-        g.stroke();
+    private _applyOutline() {
+        if (this.outline) {
+            this.outline.color = this._highlighted ? this.highlightedBorderColor : this.borderColor;
+        }
     }
 }

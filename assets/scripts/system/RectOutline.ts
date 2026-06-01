@@ -46,6 +46,13 @@ export class RectOutline extends Component {
         this._g = this.getComponent(Graphics);
     }
 
+    // Draw immediately on activation — the skill picker pauses the director,
+    // which freezes update(); onEnable still fires when the card is shown.
+    onEnable() {
+        this._lastKey = '';
+        this._redraw();
+    }
+
     update() {
         const key = `${this.width}|${this.height}|${this.thickness}|${this.insetMode}|${this._colorKey(this.color)}`;
         if (key === this._lastKey) return;

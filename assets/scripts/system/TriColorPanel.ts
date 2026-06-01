@@ -50,6 +50,14 @@ export class TriColorPanel extends Component {
         this._g = this.getComponent(Graphics);
     }
 
+    // Draw immediately on activation. The skill picker opens with
+    // director.pause(), which freezes update(); onEnable still fires
+    // synchronously when the node is activated, so the bands appear.
+    onEnable() {
+        this._lastKey = '';
+        this._redraw();
+    }
+
     update() {
         const key = [
             this.topWidth, this.topHeight, this._colorKey(this.topColor),
