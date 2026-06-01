@@ -1,4 +1,4 @@
-import { _decorator, Component, Node, EventTouch, director } from 'cc';
+import { _decorator, Component, Node, EventTouch, director, AudioClip, AudioSource } from 'cc';
 import { SkillCard } from './SkillCard';
 import { GameState, GAME_EVENT } from './GameState';
 import { getSkillTree, SkillNode } from '../skills/SkillTree';
@@ -18,12 +18,20 @@ export class SkillPicker extends Component {
     @property({ type: Node, tooltip: 'Confirm button node. Needs a SkillCard component for highlight state.' })
     confirmButton: Node | null = null;
 
+    @property({ type: AudioClip, tooltip: 'Voice played when a Daodun-tree skill card is selected.' })
+    daodunClip: AudioClip | null = null;
+
+    @property({ type: AudioClip, tooltip: 'Voice played when a Pierre Cashon-tree skill card is selected.' })
+    pierreClip: AudioClip | null = null;
+
     private _selectedIndex: number = -1;
     private _cards: Node[] = [];
     private _picked: (SkillNode | null)[] = [];
+    private _audio: AudioSource | null = null;
 
     onLoad() {
         this.node.active = false;
+        this._audio = this.getComponent(AudioSource) ?? this.addComponent(AudioSource);
         this._cards = [this.card1, this.card2, this.card3].filter((n): n is Node => !!n);
 
         for (let i = 0; i < this._cards.length; i++) {
@@ -68,10 +76,27 @@ export class SkillPicker extends Component {
         this._refreshVisuals();
     }
 
+    /** Voice keyed by the skill's root tree: daodun → daodunClip, pierre_cashon → pierreClip. */
+    private _playSelectAudio(skill: SkillNode) {
+        if (!this._audio) return;
+        const tree = getSkillTree();
+        let cur: SkillNode = skill;
+        while (cur.parentId) {
+            const p = tree.get(cur.parentId);
+            if (!p) break;
+            cur = p;
+        }
+        const clip = cur.id === 'pierre_cashon' ? this.pierreClip : cur.id === 'daodun' ? this.daodunClip : null;
+        if (clip) this._audio.playOneShot(clip);
+    }
+
     private _onConfirm() {
         if (this._selectedIndex < 0) return;
         const picked = this._picked[this._selectedIndex];
-        if (picked) getSkillTree().upgrade(picked.id);
+        if (picked) {
+            this._playSelectAudio(picked);
+            getSkillTree().upgrade(picked.id);
+        }
         director.resume();
         GameState.skillPickerOpen = false;
         this.node.active = false;
