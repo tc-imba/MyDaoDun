@@ -1,7 +1,8 @@
 import { _decorator, Component, Node, Vec3 } from 'cc';
 import { Enemy } from './Enemy';
 import { PokerCard, PokerCardOptions, Rank, Suit } from './PokerCard';
-import { getSkillTree, SkillTree } from '../skills/SkillTree';
+import { getSkillTree } from '../skills/SkillTree';
+import { ExpBar } from '../system/ExpBar';
 const { ccclass, property } = _decorator;
 
 const SUITS: Suit[] = ['S', 'H', 'D', 'C'];
@@ -20,7 +21,8 @@ type HandName =
     | 'Four of a Kind' | 'Straight Flush' | 'Royal Flush';
 
 interface HandModifier {
-    pierce: boolean;
+    /** Extra enemies a card of this hand punches through, on top of the Penetration skill. */
+    pierce: number;
     homing: boolean;
     aoe: number;
     damageMul: number;
@@ -30,18 +32,22 @@ interface HandModifier {
     count?: number;
 }
 
+const DEFAULT_MOD: HandModifier = { pierce: 0, homing: false, aoe: 0, damageMul: 1.0 };
+
 const HAND_MOD: Record<HandName, HandModifier> = {
-    // One Pair & Three of a Kind are intentionally left as-is.
-    'One Pair':        { pierce: false, homing: false, aoe:  50, damageMul: 1.0 },
-    'Two Pair':        { pierce: false, homing: false, aoe:  90, damageMul: 1.4, count: 2 },
-    'Three of a Kind': { pierce: true,  homing: false, aoe:   0, damageMul: 1.2 },
-    'Straight':        { pierce: true,  homing: true,  aoe:   0, damageMul: 1.8, count: 2 },
-    'Flush':           { pierce: false, homing: true,  aoe:  60, damageMul: 1.6, radial: true },
-    'Full House':      { pierce: true,  homing: false, aoe: 170, damageMul: 2.4, count: 3 },
-    'Four of a Kind':  { pierce: true,  homing: true,  aoe:  90, damageMul: 2.6, count: 4 },
-    'Straight Flush':  { pierce: true,  homing: true,  aoe: 140, damageMul: 3.2, radial: true, count: 6 },
-    'Royal Flush':     { pierce: true,  homing: true,  aoe: 230, damageMul: 4.5, radial: true, count: 12 },
+    'One Pair':        { pierce: 0,  homing: false, aoe:  50, damageMul: 1.0 },
+    'Two Pair':        { pierce: 0,  homing: false, aoe:  90, damageMul: 1.4, count: 2 },
+    'Three of a Kind': { pierce: 3,  homing: false, aoe:   0, damageMul: 1.2 },
+    'Straight':        { pierce: 3,  homing: true,  aoe:   0, damageMul: 1.8, count: 2 },
+    'Flush':           { pierce: 0,  homing: true,  aoe:  60, damageMul: 1.6, radial: true },
+    'Full House':      { pierce: 4,  homing: false, aoe: 170, damageMul: 2.4, count: 3 },
+    'Four of a Kind':  { pierce: 5,  homing: true,  aoe:  90, damageMul: 2.6, count: 4 },
+    'Straight Flush':  { pierce: 6,  homing: true,  aoe: 140, damageMul: 3.2, radial: true, count: 6 },
+    'Royal Flush':     { pierce: 99, homing: true,  aoe: 230, damageMul: 4.5, radial: true, count: 12 },
 };
+
+/** Each banked pot chip multiplies all card damage by this much. */
+const POT_DMG = 0.02;
 
 @ccclass('PierreCashonFighter')
 export class PierreCashonFighter extends Component {
@@ -66,6 +72,9 @@ export class PierreCashonFighter extends Component {
     @property({ tooltip: 'Total fan spread (degrees) when firing multi-card volleys.' })
     fanSpreadDeg: number = 20;
 
+    @property({ type: ExpBar, tooltip: 'Optional gauge that displays the current Pot (pot / potMax).' })
+    potBar: ExpBar | null = null;
+
     // Mutated by skill upgrades.
     handSize: number = 0;
     bonusDamage: number = 0;
@@ -75,6 +84,14 @@ export class PierreCashonFighter extends Component {
     redJoker: number = 0;
     faceCardBias: number = 0;
     psychic: number = 0;
+    pierce: number = 0;       // Penetration skill: extra enemies a card punches through.
+    call: number = 0;         // Call skill: number of return swings.
+    fold: number = 0;         // Fold skill level (1..3).
+    potSkill: number = 0;     // Pot skill level; gates pot banking + damage scaling.
+    allIn: number = 0;        // All In skill level.
+    allInHalf: number = 0;    // All In, Half skill.
+    pot: number = 0;
+    potMax: number = 30;
 
     private _timer: number = 0;
     private _myPos: Vec3 = new Vec3();
@@ -83,12 +100,29 @@ export class PierreCashonFighter extends Component {
     update(dt: number) {
         const root = getSkillTree().get('pierre_cashon');
         if (!root || root.currentLevel < 1) return;
+        this._syncPotBar();
         this._timer -= dt;
         if (this._timer > 0) return;
         const target = this._pickTarget();
-        if (!target) return;
+        if (!target) {
+            // Fold L1: no target → bank the whole would-be volley as chips instead of idling.
+            if (this.fold >= 1 && this.potSkill > 0) {
+                this._timer = this.attackInterval;
+                this._addPot(Math.min(5, 1 + this.handSize));
+            }
+            return;
+        }
         this._timer = this.attackInterval;
         this._fireVolley(target);
+    }
+
+    private _addPot(n: number) {
+        if (this.potSkill <= 0) return;
+        this.pot = Math.min(this.potMax, this.pot + n);
+    }
+
+    private _syncPotBar() {
+        if (this.potBar) this.potBar.setProgress(this.potMax > 0 ? this.pot / this.potMax : 0);
     }
 
     private _pickTarget(): Enemy | null {
@@ -133,9 +167,8 @@ export class PierreCashonFighter extends Component {
         return cards;
     }
 
-    private _evaluateHand(cards: DrawnCard[], tree: SkillTree): HandName | null {
+    private _evaluateHand(cards: DrawnCard[]): HandName | null {
         const procMul = 0.4;
-        const lvl = (id: string) => tree.get(id)?.currentLevel ?? 0;
 
         const real = cards.filter(c => !c.isJoker);
         const jokers = cards.length - real.length;
@@ -178,25 +211,56 @@ export class PierreCashonFighter extends Component {
             return missing <= jokers;
         })();
 
-        // Best → worst. Each gated by its node level and a per-hand base chance, modulated by Hand Reader.
-        const candidates: { id: string, name: HandName, base: number, ok: boolean }[] = [
-            { id: 'p_straight_flush', name: 'Royal Flush',     base: 1.00, ok: isRoyal },
-            { id: 'p_straight_flush', name: 'Straight Flush',  base: 0.80, ok: isFlush && isStraight && !isRoyal },
-            { id: 'p_four_kind',      name: 'Four of a Kind',  base: 0.60, ok: top >= 4 },
-            { id: 'p_full_house',     name: 'Full House',      base: 0.50, ok: top >= 3 && second >= 2 },
-            { id: 'p_flush',          name: 'Flush',           base: 0.40, ok: isFlush },
-            { id: 'p_straight',       name: 'Straight',        base: 0.40, ok: isStraight },
-            { id: 'p_three_kind',     name: 'Three of a Kind', base: 0.35, ok: top >= 3 },
-            { id: 'p_two_pair',       name: 'Two Pair',        base: 0.30, ok: top >= 2 && second >= 2 },
-            { id: 'p_pair',           name: 'One Pair',        base: 0.25, ok: top >= 2 },
+        // Hand types unlock purely by how many cards the volley holds (driven by Hand Size).
+        const len = cards.length;
+        const candidates: { name: HandName, base: number, ok: boolean, min: number }[] = [
+            { name: 'Royal Flush',     base: 1.00, ok: isRoyal,                          min: 5 },
+            { name: 'Straight Flush',  base: 0.80, ok: isFlush && isStraight && !isRoyal, min: 5 },
+            { name: 'Four of a Kind',  base: 0.60, ok: top >= 4,                          min: 4 },
+            { name: 'Full House',      base: 0.50, ok: top >= 3 && second >= 2,           min: 5 },
+            { name: 'Flush',           base: 0.40, ok: isFlush,                           min: 5 },
+            { name: 'Straight',        base: 0.40, ok: isStraight,                        min: 5 },
+            { name: 'Three of a Kind', base: 0.35, ok: top >= 3,                          min: 3 },
+            { name: 'Two Pair',        base: 0.30, ok: top >= 2 && second >= 2,           min: 4 },
+            { name: 'One Pair',        base: 0.25, ok: top >= 2,                          min: 2 },
         ];
         for (const c of candidates) {
-            const nodeLvl = lvl(c.id);
-            if (nodeLvl < 1 || !c.ok) continue;
-            const chance = c.base * procMul * (1 + (nodeLvl - 1) * 0.5);
-            if (Math.random() < chance) return c.name;
+            if (len < c.min || !c.ok) continue;
+            if (Math.random() < c.base * procMul) return c.name;
         }
         return null;
+    }
+
+    /** All In: overwrite the hand so it guarantees the best type the card count allows (never royal). */
+    private _forceBestHand(cards: DrawnCard[]): HandName | null {
+        const n = cards.length;
+        const set = (i: number, rank: Rank, suit: Suit) => { cards[i] = { rank, suit, isJoker: false }; };
+        if (n >= 5) {
+            const ranks: Rank[] = [9, 10, 11, 12, 13]; // 9–K straight flush, deliberately below royal
+            for (let i = 0; i < n; i++) set(i, ranks[i % 5], 'S');
+            return 'Straight Flush';
+        }
+        if (n === 4) { for (let i = 0; i < 4; i++) set(i, 13, SUITS[i]); return 'Four of a Kind'; }
+        if (n === 3) { for (let i = 0; i < 3; i++) set(i, 13, SUITS[i]); return 'Three of a Kind'; }
+        if (n === 2) { set(0, 13, 'S'); set(1, 13, 'H'); return 'One Pair'; }
+        return null;
+    }
+
+    /** Fold L3: mark which cards contribute to the made hand. Non-contributors get folded. */
+    private _scoringMask(cards: DrawnCard[], hand: HandName): boolean[] {
+        // Straights/flushes/full house use all five cards, so nothing folds.
+        if (hand !== 'One Pair' && hand !== 'Two Pair' && hand !== 'Three of a Kind' && hand !== 'Four of a Kind') {
+            return cards.map(() => true);
+        }
+        const mask = cards.map(c => c.isJoker); // jokers are wild — always kept
+        const rankCount = new Map<number, number>();
+        for (const c of cards) if (!c.isJoker) rankCount.set(c.rank, (rankCount.get(c.rank) || 0) + 1);
+        const byCount = [...rankCount.entries()].sort((a, b) => b[1] - a[1] || b[0] - a[0]);
+        const keep = new Set<number>();
+        if (byCount[0]) keep.add(byCount[0][0]);
+        if (hand === 'Two Pair' && byCount[1]) keep.add(byCount[1][0]);
+        cards.forEach((c, i) => { if (!c.isJoker && keep.has(c.rank)) mask[i] = true; });
+        return mask;
     }
 
     /** Deterministic poker rank of a hand (0 high card … 9 royal flush). Jokers are wild. */
@@ -293,7 +357,6 @@ export class PierreCashonFighter extends Component {
 
     private _fireVolley(target: Enemy) {
         if (!this.worldNode) return;
-        const tree = getSkillTree();
         const n = Math.min(5, 1 + this.handSize);
 
         const cards = this._drawHand(n);
@@ -305,8 +368,22 @@ export class PierreCashonFighter extends Component {
         const hasRed = cards.some(c => c.isJoker && c.jokerColor === 'red');
         if (hasBlack && hasRed) this._fullScreenDamage();
 
-        const hand = this._evaluateHand(cards, tree);
-        const mod = hand ? HAND_MOD[hand] : { pierce: false, homing: false, aoe: 0, damageMul: 1.0 };
+        // All In: a full pot forces the strongest hand the card count allows.
+        const allInReady = this.allIn > 0 && this.potSkill > 0 && this.pot >= this.potMax;
+        const hand = allInReady ? this._forceBestHand(cards) : this._evaluateHand(cards);
+        const mod = hand ? HAND_MOD[hand] : DEFAULT_MOD;
+
+        // Pot scales all damage; spend it only after this volley is paid out.
+        const potMul = this.potSkill > 0 ? 1 + this.pot * POT_DMG : 1;
+
+        // Fold L3: cards not part of the made hand fold into chips instead of firing.
+        let fireCards = cards;
+        if (this.fold >= 3 && this.potSkill > 0 && hand && !allInReady) {
+            const mask = this._scoringMask(cards, hand);
+            const kept = cards.filter((_, i) => mask[i]);
+            const folded = cards.length - kept.length;
+            if (kept.length > 0 && folded > 0) { this._addPot(folded); fireCards = kept; }
+        }
 
         target.node.getWorldPosition(this._otherPos);
         this.node.getWorldPosition(this._myPos);
@@ -314,12 +391,13 @@ export class PierreCashonFighter extends Component {
 
         const spread = this.fanSpreadDeg * Math.PI / 180;
         const speed = this.baseSpeed * this.speedMult;
+        const returnRange = this.baseRange * this.rangeMult;
 
-        // Total projectiles = drawn cards + the hand's bonus count.
-        const projectiles = cards.length + (mod.count ?? 0);
+        // Total projectiles = fired cards + the hand's bonus count.
+        const projectiles = fireCards.length + (mod.count ?? 0);
 
         for (let i = 0; i < projectiles; i++) {
-            const c = cards[i % cards.length];
+            const c = fireCards[i % fireCards.length];
             let angle: number;
             if (mod.radial) {
                 angle = aimAng + (i / projectiles) * Math.PI * 2;
@@ -336,17 +414,25 @@ export class PierreCashonFighter extends Component {
                 rank: c.rank,
                 suit: c.suit,
                 isJoker: c.isJoker,
-                damage: baseDmg * mod.damageMul,
+                damage: baseDmg * mod.damageMul * potMul,
                 speed,
                 lifespan: this.cardLifespan,
                 angle,
-                pierce: mod.pierce,
+                pierceBudget: this.pierce + mod.pierce,
                 homing: mod.homing,
                 target,
                 aoeRadius: mod.aoe,
                 crit,
+                returnTrips: this.call,
+                returnTo: this.node,
+                returnRange,
+                onHit: () => this._addPot(this.potSkill),
+                onFold: this.fold >= 2 ? () => this._addPot(1) : undefined,
             };
             PokerCard.spawn(this.worldNode, this._myPos.x, this._myPos.y, opts);
         }
+
+        // Spend the pot for the All In payoff (half if the Half upgrade is owned).
+        if (allInReady) this.pot = this.allInHalf > 0 ? Math.floor(this.pot / 2) : 0;
     }
 }

@@ -108,7 +108,8 @@ export class SkillTree {
             prereq: t => !!t.pierre,
         });
 
-        // Basic stats.
+        // Hand Size. Poker hands now unlock automatically as the volley grows —
+        // there are no per-hand skill nodes; _evaluateHand gates on card count.
         this._add({
             id: 'p_hand_size',
             get name() { return getI18n().t('skill.p_hand_size.name'); },
@@ -118,15 +119,8 @@ export class SkillTree {
             describeLevel: lvl => getI18n().tf('skill.p_hand_size.desc', lvl + 1),
             apply: (lvl, t) => { if (t.pierre) t.pierre.handSize = lvl; },
         });
-        this._add({
-            id: 'p_psychic',
-            get name() { return getI18n().t('skill.p_psychic.name'); },
-            parentId: 'pierre_cashon',
-            maxLevel: 5,
-            currentLevel: 0,
-            describeLevel: lvl => getI18n().tf('skill.p_psychic.desc', lvl * 20),
-            apply: (lvl, t) => { if (t.pierre) t.pierre.psychic = lvl; },
-        });
+
+        // Wildcard chain: Black Joker → Red Joker → Psychic.
         this._add({
             id: 'p_joker_black',
             get name() { return getI18n().t('skill.p_joker_black.name'); },
@@ -139,93 +133,81 @@ export class SkillTree {
         this._add({
             id: 'p_joker_red',
             get name() { return getI18n().t('skill.p_joker_red.name'); },
-            parentId: 'pierre_cashon',
+            parentId: 'p_joker_black',
             maxLevel: 1,
             currentLevel: 0,
             describeLevel: () => getI18n().t('skill.p_joker_red.desc'),
             apply: (lvl, t) => { if (t.pierre) t.pierre.redJoker = lvl; },
-            prereq: t => (t.get('p_joker_black')?.currentLevel ?? 0) >= 1,
+        });
+        this._add({
+            id: 'p_psychic',
+            get name() { return getI18n().t('skill.p_psychic.name'); },
+            parentId: 'p_joker_red',
+            maxLevel: 5,
+            currentLevel: 0,
+            describeLevel: lvl => getI18n().tf('skill.p_psychic.desc', lvl * 20),
+            apply: (lvl, t) => { if (t.pierre) t.pierre.psychic = lvl; },
         });
 
-        // Hand-detection sub-branch (hangs directly off the Pierre root).
+        // Penetration: +1 pierce per level; leftover budget feeds Call's return.
         this._add({
-            id: 'p_pair',
-            get name() { return getI18n().t('skill.p_pair.name'); },
+            id: 'p_pierce',
+            get name() { return getI18n().t('skill.p_pierce.name'); },
             parentId: 'pierre_cashon',
-            maxLevel: 1,
+            maxLevel: 3,
             currentLevel: 0,
-            describeLevel: () => getI18n().t('skill.p_pair.desc'),
-            apply: () => { /* read at evaluation time */ },
+            describeLevel: lvl => getI18n().tf('skill.p_pierce.desc', lvl),
+            apply: (lvl, t) => { if (t.pierre) t.pierre.pierce = lvl; },
         });
+
+        // The Pot — banks chips on hit and scales all damage. Gates Call & Fold.
         this._add({
-            id: 'p_two_pair',
-            get name() { return getI18n().t('skill.p_two_pair.name'); },
-            parentId: 'p_pair',
-            maxLevel: 1,
-            currentLevel: 0,
-            describeLevel: () => getI18n().t('skill.p_two_pair.desc'),
-            apply: () => { /* read at evaluation time */ },
-            prereq: t => (t.get('p_hand_size')?.currentLevel ?? 0) >= 3,
-        });
-        this._add({
-            id: 'p_three_kind',
-            get name() { return getI18n().t('skill.p_three_kind.name'); },
-            parentId: 'p_pair',
-            maxLevel: 1,
-            currentLevel: 0,
-            describeLevel: () => getI18n().t('skill.p_three_kind.desc'),
-            apply: () => { /* read at evaluation time */ },
-            prereq: t => (t.get('p_hand_size')?.currentLevel ?? 0) >= 2,
-        });
-        this._add({
-            id: 'p_straight',
-            get name() { return getI18n().t('skill.p_straight.name'); },
-            parentId: 'p_three_kind',
-            maxLevel: 1,
-            currentLevel: 0,
-            describeLevel: () => getI18n().t('skill.p_straight.desc'),
-            apply: () => { /* read at evaluation time */ },
-            prereq: t => (t.get('p_hand_size')?.currentLevel ?? 0) >= 4,
-        });
-        this._add({
-            id: 'p_four_kind',
-            get name() { return getI18n().t('skill.p_four_kind.name'); },
-            parentId: 'p_three_kind',
-            maxLevel: 1,
-            currentLevel: 0,
-            describeLevel: () => getI18n().t('skill.p_four_kind.desc'),
-            apply: () => { /* read at evaluation time */ },
-            prereq: t => (t.get('p_hand_size')?.currentLevel ?? 0) >= 3,
-        });
-        this._add({
-            id: 'p_full_house',
-            get name() { return getI18n().t('skill.p_full_house.name'); },
-            parentId: 'p_three_kind',
-            maxLevel: 1,
-            currentLevel: 0,
-            describeLevel: () => getI18n().t('skill.p_full_house.desc'),
-            apply: () => { /* read at evaluation time */ },
-            prereq: t => (t.get('p_hand_size')?.currentLevel ?? 0) >= 4,
-        });
-        this._add({
-            id: 'p_flush',
-            get name() { return getI18n().t('skill.p_flush.name'); },
+            id: 'p_pot',
+            get name() { return getI18n().t('skill.p_pot.name'); },
             parentId: 'pierre_cashon',
-            maxLevel: 1,
+            maxLevel: 3,
             currentLevel: 0,
-            describeLevel: () => getI18n().t('skill.p_flush.desc'),
-            apply: () => { /* read at evaluation time */ },
-            prereq: t => (t.get('p_hand_size')?.currentLevel ?? 0) >= 4,
+            describeLevel: lvl => getI18n().tf('skill.p_pot.desc', lvl),
+            apply: (lvl, t) => { if (t.pierre) t.pierre.potSkill = lvl; },
         });
         this._add({
-            id: 'p_straight_flush',
-            get name() { return getI18n().t('skill.p_straight_flush.name'); },
-            parentId: 'p_flush',
+            id: 'p_call',
+            get name() { return getI18n().t('skill.p_call.name'); },
+            parentId: 'p_pot',
+            maxLevel: 3,
+            currentLevel: 0,
+            describeLevel: lvl => getI18n().tf('skill.p_call.desc', lvl),
+            apply: (lvl, t) => { if (t.pierre) t.pierre.call = lvl; },
+        });
+        this._add({
+            id: 'p_fold',
+            get name() { return getI18n().t('skill.p_fold.name'); },
+            parentId: 'p_pot',
+            maxLevel: 3,
+            currentLevel: 0,
+            describeLevel: lvl => getI18n().t(`skill.p_fold.desc${lvl}`),
+            apply: (lvl, t) => { if (t.pierre) t.pierre.fold = lvl; },
+        });
+
+        // All In overflows the pot into a guaranteed best-hand; Half keeps a damage floor.
+        const potMaxFor = (lvl: number) => 38 - lvl * 8; // L1 30 · L2 22 · L3 14
+        this._add({
+            id: 'p_all_in',
+            get name() { return getI18n().t('skill.p_all_in.name'); },
+            parentId: 'p_fold',
+            maxLevel: 3,
+            currentLevel: 0,
+            describeLevel: lvl => getI18n().tf('skill.p_all_in.desc', potMaxFor(lvl)),
+            apply: (lvl, t) => { if (t.pierre) { t.pierre.allIn = lvl; t.pierre.potMax = potMaxFor(lvl); } },
+        });
+        this._add({
+            id: 'p_all_in_half',
+            get name() { return getI18n().t('skill.p_all_in_half.name'); },
+            parentId: 'p_all_in',
             maxLevel: 1,
             currentLevel: 0,
-            describeLevel: () => getI18n().t('skill.p_straight_flush.desc'),
-            apply: () => { /* read at evaluation time */ },
-            prereq: t => (t.get('p_flush')?.currentLevel ?? 0) >= 1,
+            describeLevel: () => getI18n().t('skill.p_all_in_half.desc'),
+            apply: (lvl, t) => { if (t.pierre) t.pierre.allInHalf = lvl; },
         });
     }
 
@@ -272,7 +254,11 @@ export class SkillTree {
         return result;
     }
 
-    /** Pin every unlearned root into the first slots, then fill the rest with random upgrades. */
+    /**
+     * Pin unlearned roots, then guarantee every tree with an offerable option is
+     * represented (so a level-up always lets you advance both Daodun and Pierre),
+     * then fill any remaining slots with random upgrades.
+     */
     pickRandom(count: number): SkillNode[] {
         const shuffle = <T>(arr: T[]): T[] => {
             for (let i = arr.length - 1; i > 0; i--) {
@@ -284,12 +270,33 @@ export class SkillTree {
         const roots = shuffle(this.availableRoots());
         const upgrades = shuffle(this.available());
         const result: SkillNode[] = [];
+
+        // 1) Pin every unlearned root first.
         for (const r of roots) {
             if (result.length >= count) break;
             result.push(r);
         }
+
+        // 2) Make sure each tree that still has offerable upgrades gets at least one slot.
+        const treeId = (n: SkillNode) => this._rootOf(n).id;
+        const present = new Set(result.map(treeId));
+        const byTree = new Map<string, SkillNode[]>();
+        for (const u of upgrades) {
+            const id = treeId(u);
+            if (!byTree.has(id)) byTree.set(id, []);
+            byTree.get(id)!.push(u);
+        }
+        for (const [id, list] of byTree) {
+            if (result.length >= count) break;
+            if (present.has(id)) continue;
+            result.push(list[0]);
+            present.add(id);
+        }
+
+        // 3) Fill the rest with random upgrades.
         for (const u of upgrades) {
             if (result.length >= count) break;
+            if (result.includes(u)) continue;
             result.push(u);
         }
         return result;

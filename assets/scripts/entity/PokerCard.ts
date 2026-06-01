@@ -33,12 +33,23 @@ export interface PokerCardOptions {
     lifespan: number;
     /** Initial flight direction in radians. */
     angle: number;
-    pierce: boolean;
+    /** Extra enemies the card can punch through; it dies after hitting (1 + pierceBudget) of them. */
+    pierceBudget: number;
     homing: boolean;
     target: Enemy | null;
     /** 0 disables AoE; otherwise radius around impact. */
     aoeRadius: number;
     crit: boolean;
+    /** Call: number of out→back swings before the card gives up. 0 disables the return. */
+    returnTrips: number;
+    /** Node the card flies back toward on a return swing (the player). */
+    returnTo: Node | null;
+    /** Distance from launch at which an unspent card swings back. */
+    returnRange: number;
+    /** Pot: invoked once per direct enemy hit. */
+    onHit?: () => void;
+    /** Fold L2: invoked when the card expires having never hit anything. */
+    onFold?: () => void;
 }
 
 @ccclass('PokerCard')
@@ -50,38 +61,91 @@ export class PokerCard extends Component {
     private _hit: Set<Enemy> = new Set();
     private _tmpPos: Vec3 = new Vec3();
     private _other: Vec3 = new Vec3();
+    private _pierceLeft: number = 0;
+    private _returnsLeft: number = 0;
+    private _phase: number = 0; // 0 = outbound, 1 = returning to player
+    private _originX: number = 0;
+    private _originY: number = 0;
+    private _returnRange2: number = 0;
+    private _anyHit: boolean = false;
 
     init(opts: PokerCardOptions) {
         this._opts = opts;
         this._vx = Math.cos(opts.angle) * opts.speed;
         this._vy = Math.sin(opts.angle) * opts.speed;
         this._life = opts.lifespan;
+        this._pierceLeft = opts.pierceBudget;
+        this._returnsLeft = opts.returnTrips;
+        this._returnRange2 = opts.returnRange * opts.returnRange;
+        this.node.getWorldPosition(this._tmpPos);
+        this._originX = this._tmpPos.x;
+        this._originY = this._tmpPos.y;
     }
 
     update(dt: number) {
         const opts = this._opts;
         if (!opts) return;
         this._life -= dt;
-        if (this._life <= 0) { this.node.destroy(); return; }
-
-        if (opts.homing) {
-            if (opts.target?.node?.isValid) {
-                opts.target.node.getWorldPosition(this._other);
-                this.node.getWorldPosition(this._tmpPos);
-                const dx = this._other.x - this._tmpPos.x;
-                const dy = this._other.y - this._tmpPos.y;
-                const d = Math.hypot(dx, dy) || 1;
-                const desiredVx = (dx / d) * opts.speed;
-                const desiredVy = (dy / d) * opts.speed;
-                const turn = Math.min(1, 6 * dt);
-                this._vx += (desiredVx - this._vx) * turn;
-                this._vy += (desiredVy - this._vy) * turn;
-            } else {
-                opts.homing = false;
-            }
+        if (this._life <= 0) {
+            if (!this._anyHit) opts.onFold?.();
+            this.node.destroy();
+            return;
         }
 
         this.node.getWorldPosition(this._tmpPos);
+
+        if (this._phase === 1) {
+            // Returning: steer straight back toward the player and strike whatever we cross.
+            if (opts.returnTo?.isValid) {
+                opts.returnTo.getWorldPosition(this._other);
+                const dx = this._other.x - this._tmpPos.x;
+                const dy = this._other.y - this._tmpPos.y;
+                const d = Math.hypot(dx, dy) || 1;
+                this._vx = (dx / d) * opts.speed;
+                this._vy = (dy / d) * opts.speed;
+                if (d < 40) {
+                    // Reached the player. Swing back out toward the nearest enemy if trips remain.
+                    if (this._returnsLeft > 0) {
+                        this._returnsLeft--;
+                        this._phase = 0;
+                        this._life = opts.lifespan;
+                        const dir = this._nearestDir(this._tmpPos);
+                        if (dir) { this._vx = dir.x * opts.speed; this._vy = dir.y * opts.speed; }
+                    } else {
+                        if (!this._anyHit) opts.onFold?.();
+                        this.node.destroy();
+                        return;
+                    }
+                }
+            } else {
+                this._phase = 0; // player gone; resume outbound flight
+            }
+        } else {
+            if (opts.homing) {
+                if (opts.target?.node?.isValid) {
+                    opts.target.node.getWorldPosition(this._other);
+                    const dx = this._other.x - this._tmpPos.x;
+                    const dy = this._other.y - this._tmpPos.y;
+                    const d = Math.hypot(dx, dy) || 1;
+                    const desiredVx = (dx / d) * opts.speed;
+                    const desiredVy = (dy / d) * opts.speed;
+                    const turn = Math.min(1, 6 * dt);
+                    this._vx += (desiredVx - this._vx) * turn;
+                    this._vy += (desiredVy - this._vy) * turn;
+                } else {
+                    opts.homing = false;
+                }
+            }
+            // Still alive at the border means it never spent its pierce — swing it back.
+            const dx = this._tmpPos.x - this._originX;
+            const dy = this._tmpPos.y - this._originY;
+            if (dx * dx + dy * dy >= this._returnRange2 && this._returnsLeft > 0) {
+                this._returnsLeft--;
+                this._phase = 1;
+                this._life = opts.lifespan;
+            }
+        }
+
         this._tmpPos.x += this._vx * dt;
         this._tmpPos.y += this._vy * dt;
         this.node.setWorldPosition(this._tmpPos);
@@ -91,6 +155,23 @@ export class PokerCard extends Component {
         this.node.angle = (ang * 180 / Math.PI) - 90;
 
         this._checkHits();
+    }
+
+    /** Unit vector toward the nearest live enemy, or null if none. */
+    private _nearestDir(from: Vec3): { x: number, y: number } | null {
+        let bestD2 = Infinity;
+        let bx = 0, by = 0;
+        for (const e of Enemy.all) {
+            if (!e.node || !e.node.isValid) continue;
+            e.node.getWorldPosition(this._other);
+            const dx = this._other.x - from.x;
+            const dy = this._other.y - from.y;
+            const d2 = dx * dx + dy * dy;
+            if (d2 < bestD2) { bestD2 = d2; bx = dx; by = dy; }
+        }
+        if (bestD2 === Infinity) return null;
+        const d = Math.sqrt(bestD2) || 1;
+        return { x: bx / d, y: by / d };
     }
 
     private _checkHits() {
@@ -108,8 +189,11 @@ export class PokerCard extends Component {
             this._hit.add(e);
             const dmg = opts.crit ? opts.damage * 2 : opts.damage;
             e.takeDamage(dmg);
+            this._anyHit = true;
+            opts.onHit?.();
             if (opts.aoeRadius > 0) this._aoe(this._tmpPos, dmg, e);
-            if (!opts.pierce) { this.node.destroy(); return; }
+            if (this._pierceLeft <= 0) { this.node.destroy(); return; }
+            this._pierceLeft--;
         }
     }
 
