@@ -38,6 +38,13 @@ export class DaodunFighter extends Component {
     private _myPos: Vec3 = new Vec3();
     private _otherPos: Vec3 = new Vec3();
 
+    /** 0 = ready to attack, 1 = just attacked (full cooldown remaining). */
+    get cooldownProgress(): number {
+        if (this.attackInterval <= 0) return 0;
+        const p = this._attackTimer / this.attackInterval;
+        return p < 0 ? 0 : (p > 1 ? 1 : p);
+    }
+
     onLoad() {
         this._sprite = this.getComponent(Sprite);
         this._anim = this.getComponent(Animation);

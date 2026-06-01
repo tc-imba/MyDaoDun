@@ -73,6 +73,8 @@ export class PierreCashonFighter extends Component {
     private _otherPos: Vec3 = new Vec3();
 
     update(dt: number) {
+        const root = getSkillTree().get('pierre_cashon');
+        if (!root || root.currentLevel < 1) return;
         this._timer -= dt;
         if (this._timer > 0) return;
         const target = this._pickTarget();
