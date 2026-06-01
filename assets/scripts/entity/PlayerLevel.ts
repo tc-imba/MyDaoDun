@@ -5,6 +5,7 @@ import { PierreCashonFighter } from './PierreCashonFighter';
 import { ExpBar } from '../system/ExpBar';
 import { SkillPicker } from '../system/SkillPicker';
 import { getSkillTree } from '../skills/SkillTree';
+import { getI18n, I18N_EVENT } from '../core/I18n';
 const { ccclass, property } = _decorator;
 
 @ccclass('PlayerLevel')
@@ -54,11 +55,13 @@ export class PlayerLevel extends Component {
         const pierre = this.node.getComponent(PierreCashonFighter);
         if (pierre) tree.bindPierre(pierre);
         if (!this.audioSource) this.audioSource = this.getComponent(AudioSource);
+        getI18n().events.on(I18N_EVENT.CHANGED, this._refreshUI, this);
         this._refreshUI();
     }
 
     onDisable() {
         if (Enemy.onKilled) Enemy.onKilled = null;
+        getI18n().events.off(I18N_EVENT.CHANGED, this._refreshUI, this);
     }
 
     gainExp(amount: number) {
@@ -86,7 +89,7 @@ export class PlayerLevel extends Component {
     private _refreshUI() {
         const need = this.expToNext;
         if (this.expBar) this.expBar.setProgress(this.exp / need);
-        if (this.levelLabel) this.levelLabel.string = `Lv ${this.level}`;
+        if (this.levelLabel) this.levelLabel.string = `${getI18n().t('ui.level_prefix')} ${this.level}`;
         if (this.expLabel) this.expLabel.string = `${this.exp} / ${need}`;
     }
 }
