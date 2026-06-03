@@ -1,7 +1,18 @@
-// Horizontal gradient fill for cc.Label / cc.Sprite.
+// Horizontal gradient fill for cc.Label / cc.Sprite, outline-aware.
 // Samples `gradientMap` left->right across the node's world X bounds and uses
-// it as the RGB, keeping the glyph/sprite alpha. `bounds` (x=worldLeft,
-// y=worldRight) is fed each frame by the RainbowGradient component.
+// it as the body RGB. When the same label has cc.LabelOutline, the outline
+// pixels in the glyph cache carry `outlineColor` and the body pixels carry
+// `bodyColor`; the shader classifies each sampled pixel by which of those it
+// is closer to (in RGB), so the outline keeps its original color while the
+// body is repainted with the gradient. AA edges blend continuously via the
+// distance ratio.
+//
+// Driven each frame by RainbowGradient.ts:
+//  - `bounds` (x=worldLeft, y=worldRight) for the gradient sweep
+//  - `bodyColor`    = Label.color    (the fill stored in the bitmap)
+//  - `outlineColor` = LabelOutline.color (the stroke stored in the bitmap)
+// If LabelOutline is absent, RainbowGradient pushes outlineColor=bodyColor;
+// the shader then degenerates to "everything is body" (pure gradient).
 CCEffect %{
   techniques:
   - passes:
@@ -22,6 +33,8 @@ CCEffect %{
         alphaThreshold: { value: 0.5 }
         gradientMap:    { value: white }
         bounds:         { value: [0.0, 1.0, 0.0, 0.0] }
+        bodyColor:      { value: [1.0, 1.0, 1.0, 1.0], editor: { type: color } }
+        outlineColor:   { value: [1.0, 1.0, 1.0, 1.0], editor: { type: color } }
 }%
 
 CCProgram sprite-vs %{
@@ -83,17 +96,37 @@ CCProgram sprite-fs %{
   uniform sampler2D gradientMap;
   uniform GradientParams {
     vec4 bounds;
+    vec4 bodyColor;
+    vec4 outlineColor;
   };
 
   vec4 frag () {
-    vec4 o = vec4(1, 1, 1, 1);
-    o *= CCSampleWithAlphaSeparated(cc_spriteTexture, uv0);
+    vec4 src = CCSampleWithAlphaSeparated(cc_spriteTexture, uv0);
 
     float denom = max(0.0001, bounds.y - bounds.x);
     float t = clamp((v_gx - bounds.x) / denom, 0.0, 1.0);
-    o.rgb = texture(gradientMap, vec2(t, 0.5)).rgb;
+    vec3 grad = texture(gradientMap, vec2(t, 0.5)).rgb;
 
-    o *= color;
+    // Classify pixel as outline vs body by RGB closeness. Use a relative
+    // weight so AA pixels (blended between the two colors) interpolate
+    // smoothly. If body and outline colors are equal, the classifier is
+    // undefined - default to body (pure gradient) so callers without a
+    // LabelOutline get the original behavior.
+    float colorSep = distance(bodyColor.rgb, outlineColor.rgb);
+    float outlineDist = distance(src.rgb, outlineColor.rgb);
+    float bodyDist = distance(src.rgb, bodyColor.rgb);
+    float outlineWeight = colorSep < 0.01
+        ? 0.0
+        : bodyDist / (bodyDist + outlineDist + 0.0001);
+
+    vec3 rgb = mix(grad, outlineColor.rgb, outlineWeight);
+
+    // Preserve UIOpacity (carried in vertex color alpha) but do not tint RGB
+    // by vertex color - the gradient texture / outlineColor uniform are the
+    // sole sources of color, so a black Label.color (set by RainbowGradient
+    // to keep the body sentinel distinct from the outline) does not zero out
+    // the output.
+    vec4 o = vec4(rgb, src.a * color.a);
     ALPHA_TEST(o);
     return o;
   }
