@@ -15,8 +15,11 @@ const { ccclass, property } = _decorator;
  */
 @ccclass('SkillCard')
 export class SkillCard extends Component {
-    @property({ type: RainbowText, tooltip: 'Title text (skill name). Driven via RainbowText.text so it stays rainbow.' })
+    @property({ type: RainbowText, tooltip: 'Title as a RichText with per-character RainbowText. Driven via .text. Leave empty if using titleLabel.' })
     titleText: RainbowText | null = null;
+
+    @property({ type: Label, tooltip: 'Title as a plain Label (pair with RainbowGradient for a smooth gradient fill). Alternative to titleText.' })
+    titleLabel: Label | null = null;
 
     @property({ type: Label, tooltip: 'Label showing the current level (left of the arrow).' })
     lvFromLabel: Label | null = null;
@@ -50,6 +53,7 @@ export class SkillCard extends Component {
         this._skillId = skill.id;
         const next = skill.currentLevel + 1;
         if (this.titleText) this.titleText.text = skill.name;
+        if (this.titleLabel) this.titleLabel.string = skill.name;
         if (this.lvFromLabel) this.lvFromLabel.string = `Lv ${skill.currentLevel}`;
         if (this.lvToLabel) this.lvToLabel.string = `Lv ${next}`;
         if (this.descriptionText) this.descriptionText.string = skill.describeLevel(next);
@@ -58,6 +62,7 @@ export class SkillCard extends Component {
     clearBinding() {
         this._skillId = '';
         if (this.titleText) this.titleText.text = '';
+        if (this.titleLabel) this.titleLabel.string = '';
         if (this.lvFromLabel) this.lvFromLabel.string = '';
         if (this.lvToLabel) this.lvToLabel.string = '';
         if (this.descriptionText) this.descriptionText.string = '';
