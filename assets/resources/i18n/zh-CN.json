@@ -24,10 +24,9 @@
   "skill.p_hand_size.desc": "每轮发射 {0} 张牌",
   "skill.p_psychic.name": "特异功能",
   "skill.p_psychic.desc": "每手牌有 {0}% 几率将一张牌换成能凑出最大牌型的牌",
-  "skill.p_joker_black.name": "黑色小丑",
-  "skill.p_joker_black.desc": "向牌库加入一张黑色百搭小丑",
-  "skill.p_joker_red.name": "红色小丑",
-  "skill.p_joker_red.desc": "加入一张红色小丑；黑红小丑同时出现在一手牌中时造成全屏伤害",
+  "skill.p_joker.name": "牌没有问题",
+  "skill.p_joker.desc1": "向牌库加入一张小王，可以代替任意一张牌凑出最大牌型",
+  "skill.p_joker.desc2": "向牌库加入一张大王，可以代替任意一张牌凑出最大牌型；王炸：大小王同时出现在一手牌中时出造成全屏伤害",
   "skill.p_pierce.name": "穿透",
   "skill.p_pierce.desc": "卡牌额外穿透 {0} 个敌人；未用尽的穿透会触发“跟注”的回收",
   "skill.p_pot.name": "底池",
@@ -38,8 +37,8 @@
   "skill.p_fold.desc1": "没有目标时，将整轮手牌折算为筹码",
   "skill.p_fold.desc2": "未命中任何敌人的卡牌折算为筹码",
   "skill.p_fold.desc3": "未参与成牌的卡牌折算为筹码",
-  "skill.p_all_in.name": "全下",
+  "skill.p_all_in.name": "梭哈",
   "skill.p_all_in.desc": "筹码达到 {0} 时，强制打出当前张数能凑出的最佳牌型（无皇家同花顺），并消耗底池",
-  "skill.p_all_in_half.name": "半数全下",
-  "skill.p_all_in_half.desc": "全下只消耗一半底池，保留较高的伤害加成"
+  "skill.p_all_in_half.name": "可以梭一半吗",
+  "skill.p_all_in_half.desc": "梭哈只消耗一半底池，保留较高的伤害加成"
 }

@@ -120,29 +120,20 @@ export class SkillTree {
             apply: (lvl, t) => { if (t.pierre) t.pierre.handSize = lvl; },
         });
 
-        // Wildcard chain: Black Joker → Red Joker → Psychic.
+        // Wildcard chain: Joker (black + red folded into one) → Psychic.
         this._add({
-            id: 'p_joker_black',
-            get name() { return getI18n().t('skill.p_joker_black.name'); },
+            id: 'p_joker',
+            get name() { return getI18n().t('skill.p_joker.name'); },
             parentId: 'pierre_cashon',
-            maxLevel: 1,
+            maxLevel: 2,
             currentLevel: 0,
-            describeLevel: () => getI18n().t('skill.p_joker_black.desc'),
-            apply: (lvl, t) => { if (t.pierre) t.pierre.blackJoker = lvl; },
-        });
-        this._add({
-            id: 'p_joker_red',
-            get name() { return getI18n().t('skill.p_joker_red.name'); },
-            parentId: 'p_joker_black',
-            maxLevel: 1,
-            currentLevel: 0,
-            describeLevel: () => getI18n().t('skill.p_joker_red.desc'),
-            apply: (lvl, t) => { if (t.pierre) t.pierre.redJoker = lvl; },
+            describeLevel: lvl => getI18n().t(`skill.p_joker.desc${lvl}`),
+            apply: (lvl, t) => { if (t.pierre) { t.pierre.blackJoker = lvl >= 1 ? 1 : 0; t.pierre.redJoker = lvl >= 2 ? 1 : 0; } },
         });
         this._add({
             id: 'p_psychic',
             get name() { return getI18n().t('skill.p_psychic.name'); },
-            parentId: 'p_joker_red',
+            parentId: 'p_joker',
             maxLevel: 5,
             currentLevel: 0,
             describeLevel: lvl => getI18n().tf('skill.p_psychic.desc', lvl * 20),
