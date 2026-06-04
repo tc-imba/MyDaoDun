@@ -1,26 +1,34 @@
 ---
 name: multica-agent
-description: Start the local Multica daemon and create/maintain the two MyDaoDun Multica delegation agents (yihao's Game Dev Claude + yihao's Code Review Claude) for this project. Use when setting up Multica on a fresh machine, when an agent/skill needs to be (re)created or re-synced after editing its instructions or the cocos-creator-dev skill, or when delegated tasks aren't running (daemon down / no runtime). Covers the multica CLI command surface for daemon/runtime/agent/skill, the dev<->review handoff, and the Windows gotchas that bite when porting skill content.
+description: Start the local Multica daemon and create/maintain the MyDaoDun Multica delegation agents (per developer: a Game Dev Claude, a Code Review Claude, and an Art Codex) for this project. Use when setting up Multica on a fresh machine, when an agent/skill needs to be (re)created or re-synced after editing its instructions or the cocos-creator-dev skill, or when delegated tasks aren't running (daemon down / no runtime). Covers the multica CLI command surface for daemon/runtime/agent/skill, the multi-provider runtimes (Claude + Codex), the dev/art->review handoff, and the Windows gotchas that bite when porting skill content.
 ---
 
 # multica-agent
 
 Provisions and maintains the MyDaoDun delegation agents on Multica (the runtime behind https://multica.siki.moe). One command does the whole thing idempotently; the rest of this file documents the mechanics so you can do it by hand or debug it.
 
-## The two agents (per developer)
+## The agents (per developer)
 
-Each developer gets their **own pair** of agents in the shared MyDaoDun workspace, named after their Multica handle:
+Each developer gets their **own set** of agents in the shared MyDaoDun workspace, named after their Multica handle. The set spans two providers — Claude for code/review, Codex for art:
 
-| Agent | Role |
-|---|---|
-| **`<handle>`'s Game Dev Claude** | Writes game code in the local dir `E:\MyDaoDun`. One feature = one branch + PR. Hands the issue off to the reviewer; never merges itself. Instructions: `game-dev-instructions.md`. |
-| **`<handle>`'s Code Review Claude** | Audits the dev agent's code. Sends detailed feedback back (reassign issue) on problems; once a PR is opened and good, approves + merges to `main` and sets the issue status to Done. Instructions: `code-review-instructions.md`. |
+| Agent | Provider | Role |
+|---|---|---|
+| **`<handle>`'s Game Dev Claude** | claude | Writes game code in the local dir `E:\MyDaoDun`. One feature = one branch + PR. Hands the issue off to the reviewer; never merges itself. Instructions: `game-dev-instructions.md`. |
+| **`<handle>`'s Art Codex** | codex | Produces art — images/sprites, audio, particle/animation effects — in `E:\MyDaoDun`. One deliverable = one branch + PR. Hands off to the reviewer; never merges itself. Instructions: `art-instructions.md`. |
+| **`<handle>`'s Code Review Claude** | claude | Audits code from the dev agent and art from the art agent. Sends detailed feedback back (reassign issue) on problems; once a PR is opened and good, approves + merges to `main` and sets the issue status to Done. Instructions: `code-review-instructions.md`. |
 
-The **handle** is derived from the Multica login: the first dot-segment of the username (`yihao.liu` → `yihao`), or override with the `MULTICA_AGENT_HANDLE` env var. So every developer runs the *same* `sync.py` and provisions their own pair (e.g. `di.shi` → "di's Game Dev Claude") without disturbing anyone else's agents. `sync.py` only touches agents matching the current handle (plus archiving legacy names).
+The **handle** is derived from the Multica login: the first dot-segment of the username (`yihao.liu` → `yihao`), or override with the `MULTICA_AGENT_HANDLE` env var. So every developer runs the *same* `sync.py` and provisions their own set (e.g. `di.shi` → "di's Game Dev Claude") without disturbing anyone else's agents. `sync.py` only touches agents matching the current handle (plus archiving legacy names).
 
-The instruction files are **templates**: `sync.py` substitutes `{{DEV_AGENT}}` / `{{REVIEW_AGENT}}` with the resolved per-developer names before upload — so the dev↔review references inside the instructions always point at that developer's own pair.
+The instruction files are **templates**: `sync.py` substitutes `{{DEV_AGENT}}` / `{{REVIEW_AGENT}}` / `{{ART_AGENT}}` with the resolved per-developer names before upload — so the cross-references inside the instructions always point at that developer's own set.
 
-Handoff between them is by **reassigning the Multica issue** to the other agent (`issue update --assignee "<agent name>"`, which fuzzy-matches agent names) plus a comment. Neither agent is subject to the `CLAUDE.md` "Publish gate (HARD)" — that gate governs the interactive human session, not these delegated roles. Both have the `cocos-creator-dev` skill attached.
+Handoff is by **reassigning the Multica issue** to the target agent (`issue update --assignee "<agent name>"`, which fuzzy-matches agent names) plus a comment. No agent is subject to the `CLAUDE.md` "Publish gate (HARD)" — that gate governs the interactive human session, not these delegated roles. All three have the `cocos-creator-dev` skill attached.
+
+### Provider notes (Claude vs Codex)
+
+Each agent pins to the **online runtime for its provider** on this machine (the daemon registers one runtime per detected CLI — Claude and Codex). Two provider-specific quirks, handled by `sync.py` via the `ROLES` table:
+
+- **Model**: the Claude agents use `claude-opus-4-8`; the Codex agent sets **no model** (empty) so it falls back to the runtime default — Codex (`codex app-server`) rejects a `--model` it doesn't recognize.
+- **Project binding**: the Claude agents get `--custom-args ["--add-dir","E:\\MyDaoDun"]`; the Codex agent gets **empty custom-args** because `--add-dir` is a Claude-Code-only flag. The Codex agent reaches the project via its instructions (`cd E:\MyDaoDun`). If Codex tasks can't access the project at runtime, the fix is a Codex-appropriate working-dir flag in that role's `add_dir`/custom-args — TBD once we confirm Codex's flag.
 
 ## TL;DR — one command
 
@@ -28,7 +36,7 @@ Handoff between them is by **reassigning the Multica issue** to the other agent 
 python .claude/skills/multica-agent/sync.py
 ```
 
-This (1) starts the local daemon if it's down, (2) creates-or-updates the `cocos-creator-dev` workspace skill from `.claude/skills/cocos-creator-dev/`, (3) archives any legacy agents, and (4) creates-or-updates both agents (pinned to this machine's Claude runtime) and assigns the skill to each. Re-run it any time you edit either `*-instructions.md` file or the cocos-creator-dev skill — it's safe to run repeatedly. Pass `--no-daemon` to skip the daemon step.
+This (1) starts the local daemon if it's down, (2) creates-or-updates the `cocos-creator-dev` workspace skill from `.claude/skills/cocos-creator-dev/`, (3) archives any legacy agents, and (4) creates-or-updates all three agents (each pinned to this machine's runtime for its provider) and assigns the skill to each. Re-run it any time you edit a `*-instructions.md` file or the cocos-creator-dev skill — it's safe to run repeatedly. Pass `--no-daemon` to skip the daemon step.
 
 ## Configuration
 
@@ -51,6 +59,7 @@ Verify auth (prints to stderr): `"$MULTICA_BIN" auth status 2>&1`.
 | Skill | cocos-creator-dev | `488201b4-32d5-486b-a1e7-9cdda292b062` |
 | Agent (yihao) | yihao's Game Dev Claude | `70e64140-1818-432a-9b38-5eff3ff2feb6` |
 | Agent (yihao) | yihao's Code Review Claude | `73de31f2-2215-4e58-9a50-ff9f32c8571d` |
+| Agent (yihao) | yihao's Art Codex | `668034b8-47f4-4bb1-9608-05ed44ec8700` |
 
 Agent IDs are **per-developer** — those above are yihao's. Other developers' pairs have their own IDs; always resolve agents by name, never hardcode the IDs.
 
@@ -100,8 +109,9 @@ Multica has no agent-level cwd — tasks run in an ephemeral `~/.multica/workspa
 
 ## Files in this skill
 
-- `sync.py` — idempotent provisioner/maintainer (daemon + skill + the current developer's agent pair, archives legacy). Stdlib-only; run with any Python 3. The `ROLES` list + `current_handle()` define which agents it manages.
-- `game-dev-instructions.md` — instructions **template** for the Game Dev agent (uses `{{DEV_AGENT}}` / `{{REVIEW_AGENT}}` placeholders).
+- `sync.py` — idempotent provisioner/maintainer (daemon + skill + the current developer's agent set, archives legacy). Stdlib-only; run with any Python 3. The `ROLES` list (suffix, instr, provider, model, add_dir) + `current_handle()` define which agents it manages.
+- `game-dev-instructions.md` — instructions **template** for the Game Dev agent (placeholders: `{{DEV_AGENT}}` / `{{REVIEW_AGENT}}` / `{{ART_AGENT}}`).
 - `code-review-instructions.md` — instructions **template** for the Code Review agent (same placeholders).
+- `art-instructions.md` — instructions **template** for the Art Codex agent (same placeholders).
 
 Edit an instructions template, then re-run `sync.py` — it re-renders the placeholders for your handle and pushes the change to Multica.

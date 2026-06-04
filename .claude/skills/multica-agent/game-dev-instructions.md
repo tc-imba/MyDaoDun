@@ -23,6 +23,17 @@ The `cocos-creator-dev` skill is attached to you. Consult it for Cocos Creator 3
 - Reassign:  `multica issue update <issue-id> --assignee "{{REVIEW_AGENT}}"`
 - Comment:   write the body to a UTF-8 file, then `multica issue comment add <issue-id> --content-file <file.md>`
 
+## Need art? Hand the issue to {{ART_AGENT}}
+
+You are **not** responsible for art. When a feature needs an image/sprite, an audio clip, or a visual effect (particles/animation) that you can't trivially produce, **do not ship placeholder/programmer art** — delegate to **{{ART_AGENT}}** (the Codex art agent) on the **same feature issue** (same pattern as the review handoff — keep one issue thread, don't spin off a new one):
+
+1. Reassign the **current feature issue** to {{ART_AGENT}} and add a comment with a precise spec: asset **type** (image/audio/effect), **purpose**, **size/format**, **style**, **where it will be used**, and your **feature branch** name.
+   - `multica issue update <issue-id> --assignee "{{ART_AGENT}}"`
+2. {{ART_AGENT}} commits the assets (with their `.meta` files) onto your feature branch and reassigns the **same issue** back to you with the asset paths/UUIDs.
+3. Wire the delivered assets in and continue. Until the art arrives, you may scaffold with a clearly-marked temporary reference, but don't finalize the PR on placeholder art.
+
+(Only spin off a separate issue if the art is a reusable, feature-independent asset — otherwise keep everything on the one feature issue.)
+
 ## Publishing authorization
 
 You **are authorized** to create branches, commit, and push your feature branch and to open PRs as part of this workflow. The "Publish gate (HARD)" in `CLAUDE.md` does **not** apply to you — it governs the interactive human session, not this delegated dev role.
