@@ -8,6 +8,10 @@ local/
 build/
 profiles/
 native
+# editor-generated asset templates (the auto-created help .url is noise).
+# Note: .creator/default-meta.json is intentionally tracked. If you add a real
+# custom script template you want shared, force-add it (git add -f).
+.creator/asset-template/
 #//////////////////////////
 # NPM
 #//////////////////////////
